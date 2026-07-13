@@ -1,76 +1,180 @@
-import { taskStore, TaskStore } from "@/src/entities/task";
-import { Task } from "@/src/entities/task/model/types";
-import { makeAutoObservable } from "mobx";
-import { createContext, useContext } from "react";
+import { taskStore, TaskStore } from '@/src/entities/task';
+import { Task } from '@/src/entities/task/model/types';
+import { attachmentStore } from '@/src/entities/attachment/model/store';
+import { Attachment } from '@/src/entities/attachment/model/types';
+import { makeAutoObservable, runInAction } from 'mobx';
+import { createContext, useContext } from 'react';
 import { randomUUID } from 'expo-crypto';
+import {
+    validateTaskForm,
+    ValidationErrors,
+    hasValidationErrors,
+} from '@/src/shared/lib/validation';
+import { LocationFormHelper } from '@/src/shared/lib/LocationFormHelper';
+
+const createId = () => {
+    try {
+        return randomUUID();
+    } catch {
+        return `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+    }
+};
 
 export class TaskAddingStore {
     private taskStore: TaskStore;
+    readonly locationForm = new LocationFormHelper();
 
-    isModalVisible: boolean = false;
-    title: Task['title'] = '';
-    description: Task['description'] = '';
-    dueDate: Date = new Date();
-    location: Task['location'] = '';
-    attachments: Task['attachments'] = [];
+    isModalVisible = false;
+    isSubmitting = false;
+    title = '';
+    description = '';
+    dueDate = new Date(Date.now() + 3600000);
     status: Task['status'] = 'new';
-    check: boolean = false;
+    pendingAttachments: Attachment[] = [];
+    errors: ValidationErrors = {};
+    submitError: string | null = null;
 
     constructor(taskStore: TaskStore) {
         this.taskStore = taskStore;
-        makeAutoObservable(this);
+        makeAutoObservable(this, {
+            locationForm: false,
+        });
     }
 
-    private nullify = () => {
+    get location() {
+        return this.locationForm.location;
+    }
+
+    get isGeocoding() {
+        return this.locationForm.isGeocoding;
+    }
+
+    get geocodeHint() {
+        return this.locationForm.geocodeHint;
+    }
+
+    private reset = () => {
         this.title = '';
         this.description = '';
-        this.dueDate = new Date();
-        this.location = '';
-        this.attachments = [];
+        this.dueDate = new Date(Date.now() + 3600000);
+        this.locationForm.resetLocation({ address: '' });
         this.status = 'new';
-        this.check = false;
+        this.pendingAttachments = [];
+        this.errors = {};
+        this.submitError = null;
+        this.isSubmitting = false;
+    };
+
+    openModal = () => {
+        this.reset();
+        this.isModalVisible = true;
+    };
+
+    closeModal = () => {
+        this.isModalVisible = false;
     };
 
     toggleModalVisibility = () => {
-        if (!this.isModalVisible) {
-            this.nullify();
+        if (this.isModalVisible) {
+            this.closeModal();
+        } else {
+            this.openModal();
         }
-
-        this.isModalVisible = !this.isModalVisible;
-    }
-
-    setTitle = (title: Task['title']) => this.title = title;
-
-    setDescription = (description: Task['description']) => this.description = description;
-
-    setDueDate = (dueDate: Date) => this.dueDate = dueDate;
-
-    setLocation = (location: Task['location']) => this.location = location;
-
-    setStatus = (status: string) => this.status = status as Task['status'];
-
-    addTask = async () => {
-        this.check = true;
-
-        if (this.isInvalid) return;
-
-        await this.taskStore.addTask({
-            id: randomUUID(),
-            creationDate: Date.now(),
-            history: [],
-            title: this.title,
-            description: this.description,
-            dueDate: this.dueDate.getTime(),
-            location: this.location,
-            attachments: this.attachments,
-            status: this.status
-        });
-        this.toggleModalVisibility();
     };
 
-    get isInvalid() {
-        return this.check && this.title.trim().length === 0;
-    }
+    setTitle = (title: string) => {
+        this.title = title;
+        if (this.errors.title) this.errors = { ...this.errors, title: undefined };
+    };
+
+    setDescription = (description: string) => {
+        this.description = description;
+        if (this.errors.description) this.errors = { ...this.errors, description: undefined };
+    };
+
+    setDueDate = (dueDate: Date) => {
+        this.dueDate = dueDate;
+        if (this.errors.dueDate) this.errors = { ...this.errors, dueDate: undefined };
+    };
+
+    setLocationAddress = (address: string) => {
+        this.locationForm.setLocationAddress(address);
+        if (this.errors.location) this.errors = { ...this.errors, location: undefined };
+    };
+
+    setLocationCoordinateFields = (latitudeText: string, longitudeText: string) => {
+        this.locationForm.setLocationCoordinateFields(latitudeText, longitudeText);
+    };
+
+    setStatus = (status: string) => {
+        this.status = status as Task['status'];
+    };
+
+    addPendingAttachment = (attachment: Omit<Attachment, 'id' | 'taskId' | 'createdAt'>) => {
+        this.pendingAttachments = [
+            ...this.pendingAttachments,
+            {
+                ...attachment,
+                id: createId(),
+                taskId: '',
+                createdAt: Date.now(),
+            },
+        ];
+    };
+
+    removePendingAttachment = (id: string) => {
+        this.pendingAttachments = this.pendingAttachments.filter(a => a.id !== id);
+    };
+
+    addTask = async (): Promise<{ ok: boolean; warning?: string }> => {
+        if (this.isSubmitting) return { ok: false };
+
+        const errors = validateTaskForm({
+            title: this.title,
+            description: this.description,
+            dueDate: this.dueDate,
+            location: this.location,
+        });
+        this.errors = errors;
+        this.submitError = null;
+
+        if (hasValidationErrors(errors)) {
+            return { ok: false };
+        }
+
+        this.isSubmitting = true;
+        try {
+            const taskId = createId();
+            const { warning } = await this.taskStore.addTask({
+                id: taskId,
+                creationDate: Date.now(),
+                title: this.title.trim(),
+                description: this.description.trim(),
+                dueDate: this.dueDate.getTime(),
+                location: { ...this.location },
+                status: this.status,
+            });
+
+            for (const att of this.pendingAttachments) {
+                await attachmentStore.addAttachment({ ...att, taskId });
+            }
+
+            runInAction(() => {
+                this.isSubmitting = false;
+                this.isModalVisible = false;
+            });
+
+            return { ok: true, warning };
+        } catch (error) {
+            console.error('Failed to create task', error);
+            runInAction(() => {
+                this.isSubmitting = false;
+                this.submitError =
+                    error instanceof Error ? error.message : 'Failed to create task. Please try again.';
+            });
+            return { ok: false };
+        }
+    };
 }
 
 const taskAddingStore = new TaskAddingStore(taskStore);

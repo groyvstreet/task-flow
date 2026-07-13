@@ -1,53 +1,86 @@
-import { createContext, useContext } from "react";
-import { Action } from "./types";
-import { makeAutoObservable, runInAction } from "mobx";
+import { createContext, useContext } from 'react';
+import { Action, ActionType } from './types';
+import { makeAutoObservable, runInAction } from 'mobx';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { STORAGE_KEYS } from '@/src/shared/lib/constants';
+import { randomUUID } from 'expo-crypto';
+import { ActionService } from '../api/service';
+
+type LogActionParams = {
+    taskId: string;
+    taskTitle?: string;
+    type: ActionType;
+    description: string;
+};
 
 export class ActionStore {
-    actions: Array<Action> = [];
-    taskId: string = '';
+    private actionService: ActionService;
 
-    constructor() {
+    actions: Action[] = [];
+    isLoading = false;
+
+    constructor(actionService: ActionService) {
+        this.actionService = actionService;
         makeAutoObservable(this);
     }
 
     init = async () => {
-        const data = await AsyncStorage.getItem('actions');
-
-        if (!data) return;
+        this.isLoading = true;
+        const data = await AsyncStorage.getItem(STORAGE_KEYS.ACTIONS);
 
         runInAction(() => {
-            this.actions = JSON.parse(data);
+            if (data) {
+                this.actions = JSON.parse(data);
+            }
+            this.isLoading = false;
         });
     };
 
     private saveActions = async () => {
-        await AsyncStorage.setItem('actions', JSON.stringify(this.actions));
+        await AsyncStorage.setItem(STORAGE_KEYS.ACTIONS, JSON.stringify(this.actions));
     };
 
-    setTaskId = (taskId: string) => this.taskId = taskId;
+    logAction = async (params: LogActionParams) => {
+        const action: Action = {
+            id: randomUUID(),
+            taskId: params.taskId,
+            taskTitle: params.taskTitle,
+            type: params.type,
+            description: params.description,
+            timestamp: Date.now(),
+            synced: false,
+        };
 
-    addAction = async (action: Action) => {
-        this.actions = [action, ...this.actions];
-        this.saveActions();
+        runInAction(() => {
+            this.actions = [action, ...this.actions];
+        });
+        await this.saveActions();
+        return action;
     };
 
-    updateAction = async (action: Action) => {
-        this.actions = this.actions.map(a => a.id === action.id ? { ...action } : a);
-        this.saveActions();
+    markActionsSynced = async (actionIds: string[]) => {
+        runInAction(() => {
+            this.actions = this.actions.map(a =>
+                actionIds.includes(a.id) ? { ...a, synced: true } : a,
+            );
+        });
+        await this.saveActions();
     };
 
-    removeAction = async (action: Action) => {
-        this.actions = this.actions.filter(a => a.id !== action.id);
-        this.saveActions();
+    get unsyncedActions(): Action[] {
+        return this.actions.filter(a => !a.synced);
+    }
+
+    getActionsByTaskId = (taskId: string): Action[] => {
+        return this.actions.filter(a => a.taskId === taskId);
     };
 
-    get actionsByTaskId() {
-        return this.actions.filter(a => a.taskId === this.taskId);
+    get sortedActions(): Action[] {
+        return [...this.actions].sort((a, b) => b.timestamp - a.timestamp);
     }
 }
 
-export const actionStore = new ActionStore();
+export const actionStore = new ActionStore(new ActionService());
 
 const actionContext = createContext(actionStore);
 

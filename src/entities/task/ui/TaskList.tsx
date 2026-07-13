@@ -1,30 +1,44 @@
-import { FlatList, StyleSheet } from "react-native";
-import { useTaskStore } from "../model/store";
-import { TaskCard } from "./TaskCard";
-import { observer } from "mobx-react-lite";
-import { useEffect } from "react";
+import { FlatList, StyleSheet, View, ActivityIndicator } from 'react-native';
+import { useTaskStore } from '../model/store';
+import { TaskCard } from './TaskCard';
+import { observer } from 'mobx-react-lite';
+import { EmptyState } from '@/src/shared/ui';
 
 export const TaskList = observer(() => {
     const taskStore = useTaskStore();
 
-    useEffect(() => {
-        taskStore.init();
-    }, []);
+    if (taskStore.isLoading) {
+        return (
+            <View style={styles.center}>
+                <ActivityIndicator size="large" color="#0f766e" />
+            </View>
+        );
+    }
+
+    if (taskStore.tasks.length === 0) {
+        return <EmptyState />;
+    }
 
     return (
         <FlatList
             contentContainerStyle={styles.content}
-            data={taskStore.tasks}
-            renderItem={({ item }) => <TaskCard task={item} />}       
-            keyExtractor={(item) => item.id}
+            data={taskStore.sortedTasks}
+            renderItem={({ item }) => <TaskCard task={item} />}
+            keyExtractor={item => item.id}
+            showsVerticalScrollIndicator={false}
         />
     );
 });
 
 const styles = StyleSheet.create({
+    center: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     content: {
-        padding: 20,
-        gap: 10,
-        paddingBottom: 104
-    }
+        padding: 16,
+        gap: 12,
+        paddingBottom: 120,
+    },
 });
