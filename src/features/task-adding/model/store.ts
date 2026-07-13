@@ -14,13 +14,30 @@ export class TaskAddingStore {
     location: Task['location'] = '';
     attachments: Task['attachments'] = [];
     status: Task['status'] = 'new';
+    check: boolean = false;
 
     constructor(taskStore: TaskStore) {
         this.taskStore = taskStore;
         makeAutoObservable(this);
     }
 
-    toggleModalVisibility = () => this.isModalVisible = !this.isModalVisible;
+    private nullify = () => {
+        this.title = '';
+        this.description = '';
+        this.dueDate = new Date();
+        this.location = '';
+        this.attachments = [];
+        this.status = 'new';
+        this.check = false;
+    };
+
+    toggleModalVisibility = () => {
+        if (!this.isModalVisible) {
+            this.nullify();
+        }
+
+        this.isModalVisible = !this.isModalVisible;
+    }
 
     setTitle = (title: Task['title']) => this.title = title;
 
@@ -30,9 +47,13 @@ export class TaskAddingStore {
 
     setLocation = (location: Task['location']) => this.location = location;
 
-    setStatus = (status: Task['status']) => this.status = status;
+    setStatus = (status: string) => this.status = status as Task['status'];
 
     addTask = async () => {
+        this.check = true;
+
+        if (this.isInvalid) return;
+
         await this.taskStore.addTask({
             id: randomUUID(),
             creationDate: Date.now(),
@@ -44,7 +65,12 @@ export class TaskAddingStore {
             attachments: this.attachments,
             status: this.status
         });
+        this.toggleModalVisibility();
     };
+
+    get isInvalid() {
+        return this.check && this.title.trim().length === 0;
+    }
 }
 
 const taskAddingStore = new TaskAddingStore(taskStore);
