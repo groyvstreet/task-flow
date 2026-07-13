@@ -2,9 +2,14 @@ import { FlatList, StyleSheet } from "react-native";
 import { useTaskStore } from "../model/store";
 import { TaskCard } from "./TaskCard";
 import { observer } from "mobx-react-lite";
+import { useEffect } from "react";
 
 export const TaskList = observer(() => {
     const taskStore = useTaskStore();
+
+    useEffect(() => {
+        taskStore.init();
+    }, []);
 
     return (
         <FlatList

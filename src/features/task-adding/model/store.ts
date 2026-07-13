@@ -1,5 +1,5 @@
-import { taskStore, TaskStore } from "@/entities/task";
-import { Task } from "@/entities/task/model/types";
+import { taskStore, TaskStore } from "@/src/entities/task";
+import { Task } from "@/src/entities/task/model/types";
 import { makeAutoObservable } from "mobx";
 import { createContext, useContext } from "react";
 import { randomUUID } from 'expo-crypto';

@@ -1,6 +1,6 @@
+import { Input, InputField } from '@/components/ui/input';
 import ExpoDateTimePicker, { DateTimePickerChangeEvent } from '@expo/ui/community/datetime-picker';
 import { useState } from 'react';
-import { TextInput } from 'react-native-paper';
 
 type Props = {
     value: Date;
@@ -20,10 +20,9 @@ export const DateTimePicker = ({ value, onValueChange, minimumDate }: Props) => 
 
     return (
         <>
-            <TextInput
-                value={value.toDateString()}
-                onPress={toggleVisibility}
-            />
+            <Input>
+                <InputField value={value.toDateString()} onPress={toggleVisibility} />
+            </Input>
             {isPickerVisible && (
                 <ExpoDateTimePicker
                     value={value}

@@ -1,6 +1,6 @@
-import { TasksScreen } from "@/screens/tasks";
+import { TasksScreen } from '@/src/screens/tasks';
 
-export default function Index() {
+export default function Home() {
     return (
         <TasksScreen />
     );
