@@ -1,6 +1,8 @@
+import { TaskScreen } from "@/src/screens/task";
+
 const Task = () => {
     return (
-        null
+        <TaskScreen />
     );
 };
 
