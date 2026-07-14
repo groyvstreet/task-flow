@@ -14,12 +14,16 @@ type SyncOptions = {
 };
 
 const AUTO_SYNC_DEBOUNCE_MS = 400;
+const REACHABILITY_RETRIES = 4;
+const REACHABILITY_DELAY_MS = 1200;
 
 const isConnected = (state: NetInfoState): boolean => {
     if (state.isConnected === false) return false;
     if (state.isInternetReachable === false) return false;
     return state.isConnected === true;
 };
+
+const sleep = (ms: number) => new Promise<void>(resolve => setTimeout(resolve, ms));
 
 export class SyncStore {
     isSyncing = false;
@@ -30,11 +34,15 @@ export class SyncStore {
     private initialNetworkResolved = false;
     private networkReady: Promise<boolean>;
     private autoSyncTimer: ReturnType<typeof setTimeout> | null = null;
+    private pendingSync = false;
+    private pendingSyncQuiet = true;
 
     constructor() {
         makeAutoObservable(this, {
             networkReady: false,
             autoSyncTimer: false,
+            pendingSync: false,
+            pendingSyncQuiet: false,
         });
         this.networkReady = this.setupNetworkListener();
         registerAutoSyncTrigger(() => this.requestSync());
@@ -59,31 +67,62 @@ export class SyncStore {
             });
 
             if (this.initialNetworkResolved && online && wasOffline) {
-                void this.syncAll();
+                void this.syncAllWithReachabilityRetry();
             }
         });
 
         return initial;
     };
 
+    private syncAllWithReachabilityRetry = async () => {
+        for (let attempt = 0; attempt < REACHABILITY_RETRIES; attempt++) {
+            if (attempt > 0) {
+                await sleep(REACHABILITY_DELAY_MS * attempt);
+            }
+            if (!this.isOnline) return;
+
+            const reachable = await syncService.isOnline();
+            if (reachable) {
+                await this.syncAll({ quiet: true });
+                return;
+            }
+        }
+
+        toastStore.show('Server is not reachable yet. Try Sync when ready.', 'warning');
+    };
+
     hydrateOnLaunch = async () => {
         const online = await this.networkReady.catch(() => false);
         if (!online) return;
-        await this.syncAll();
+        await this.syncAllWithReachabilityRetry();
     };
 
     requestSync = () => {
         if (!this.isOnline) return;
+        if (this.isSyncing) {
+            this.pendingSync = true;
+            this.pendingSyncQuiet = true;
+            return;
+        }
         if (this.autoSyncTimer) clearTimeout(this.autoSyncTimer);
         this.autoSyncTimer = setTimeout(() => {
             this.autoSyncTimer = null;
-            if (!this.isOnline || this.isSyncing) return;
+            if (!this.isOnline) return;
+            if (this.isSyncing) {
+                this.pendingSync = true;
+                this.pendingSyncQuiet = true;
+                return;
+            }
             void this.syncAll({ quiet: true });
         }, AUTO_SYNC_DEBOUNCE_MS);
     };
 
     syncAll = async (options: SyncOptions = {}) => {
-        if (this.isSyncing) return;
+        if (this.isSyncing) {
+            this.pendingSync = true;
+            this.pendingSyncQuiet = options.quiet ?? false;
+            return;
+        }
 
         runInAction(() => {
             this.isSyncing = true;
@@ -96,12 +135,12 @@ export class SyncStore {
                 const message = 'Server is not reachable. Changes saved locally.';
                 runInAction(() => {
                     this.lastError = message;
-                    this.isOnline = false;
                     this.isSyncing = false;
                 });
                 if (!options.silentErrors) {
                     toastStore.show(message, 'warning');
                 }
+                this.flushPendingSync();
                 return;
             }
 
@@ -112,7 +151,7 @@ export class SyncStore {
             const pendingIds = taskStore.tasks
                 .filter(t => t.syncStatus === 'pending')
                 .map(t => t.id);
-            const deletedIds = [...taskStore.deletedTaskIds];
+            const deletedIds = [...new Set(taskStore.deletedTaskIds)];
             const unsyncedActions = actionStore.unsyncedActions;
             const hadLocalTasks = taskStore.tasks.length > 0;
             const hadWork =
@@ -122,7 +161,6 @@ export class SyncStore {
 
             if (deletedIds.length > 0) {
                 await syncService.syncDeletedTasks(deletedIds);
-                await taskStore.markDeletedSynced(deletedIds);
             }
 
             await syncService.syncTasks(taskStore.tasks);
@@ -138,6 +176,12 @@ export class SyncStore {
             await taskStore.mergeTasksFromServer(serverTasks);
             await actionStore.mergeFromServer(serverActions);
             await attachmentStore.mergeFromServer(serverAttachments);
+
+            const serverIdSet = new Set(serverTasks.map(t => t.id));
+            const confirmedDeleted = deletedIds.filter(id => !serverIdSet.has(id));
+            if (confirmedDeleted.length > 0) {
+                await taskStore.markDeletedSynced(confirmedDeleted);
+            }
             await taskStore.markSynced(pendingIds);
 
             for (const id of pendingIds) {
@@ -156,6 +200,12 @@ export class SyncStore {
             if (leftoverActions.length > 0) {
                 const pushed = await syncService.syncActions(leftoverActions);
                 await actionStore.markActionsSynced(pushed.map(a => a.id));
+            }
+
+            const leftoverDeletes = [...new Set(taskStore.deletedTaskIds)];
+            if (leftoverDeletes.length > 0) {
+                await syncService.syncDeletedTasks(leftoverDeletes);
+                await taskStore.markDeletedSynced(leftoverDeletes);
             }
 
             const restored = !hadLocalTasks && serverTasks.length > 0;
@@ -196,8 +246,20 @@ export class SyncStore {
                 taskId: 'system',
                 type: 'sync_failed',
                 description: `Sync failed: ${message}`,
+                synced: true,
             });
         }
+
+        this.flushPendingSync();
+    };
+
+    private flushPendingSync = () => {
+        if (!this.pendingSync) return;
+        const quiet = this.pendingSyncQuiet;
+        this.pendingSync = false;
+        this.pendingSyncQuiet = true;
+        if (!this.isOnline || this.isSyncing) return;
+        void this.syncAll({ quiet });
     };
 }
 

@@ -120,7 +120,6 @@ export const TaskMap = observer(() => {
                         }}
                         pinColor="#0f766e"
                         tracksViewChanges={false}
-                        onCalloutPress={() => router.push(`/${task.id}`)}
                     >
                         <Callout tooltip onPress={() => router.push(`/${task.id}`)}>
                             <View style={styles.callout}>

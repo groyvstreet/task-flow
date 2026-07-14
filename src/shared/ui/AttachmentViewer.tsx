@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -6,6 +6,7 @@ import {
     Image,
     Linking,
     Modal,
+    Platform,
     Pressable,
     StyleSheet,
     Text,
@@ -14,31 +15,69 @@ import {
 import { Attachment } from '@/src/entities/attachment/model/types';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import * as Sharing from 'expo-sharing';
+import * as FileSystem from 'expo-file-system/legacy';
+import * as IntentLauncher from 'expo-intent-launcher';
 
 type Props = {
     attachment: Attachment | null;
     onClose: () => void;
 };
 
+const openLocalFile = async (uri: string, mimeType: string, name: string) => {
+    if (Platform.OS === 'android') {
+        const contentUri = await FileSystem.getContentUriAsync(uri);
+        await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
+            data: contentUri,
+            flags: 1,
+            type: mimeType,
+        });
+        return;
+    }
+
+    if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(uri, {
+            mimeType,
+            dialogTitle: name,
+            UTI: mimeType === 'application/pdf' ? 'com.adobe.pdf' : undefined,
+        });
+        return;
+    }
+
+    const canOpen = await Linking.canOpenURL(uri);
+    if (!canOpen) {
+        throw new Error('unavailable');
+    }
+    await Linking.openURL(uri);
+};
+
 export const AttachmentViewer = ({ attachment, onClose }: Props) => {
     const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(true);
     const [failed, setFailed] = useState(false);
+    const [opening, setOpening] = useState(false);
+
+    useEffect(() => {
+        setLoading(true);
+        setFailed(false);
+        setOpening(false);
+    }, [attachment?.id]);
 
     if (!attachment) return null;
 
     const isImage = attachment.type === 'image';
 
     const openExternally = async () => {
+        setOpening(true);
         try {
-            const canOpen = await Linking.canOpenURL(attachment.uri);
-            if (!canOpen) {
-                Alert.alert('Cannot open file', 'This attachment is unavailable on this device.');
-                return;
-            }
-            await Linking.openURL(attachment.uri);
+            await openLocalFile(attachment.uri, attachment.mimeType, attachment.name);
         } catch {
-            Alert.alert('Cannot open file', 'Failed to open this attachment.');
+            Alert.alert(
+                'Cannot open file',
+                'Install a PDF viewer app or try again. The file may be unavailable on this device.',
+            );
+        } finally {
+            setOpening(false);
         }
     };
 
@@ -67,8 +106,14 @@ export const AttachmentViewer = ({ attachment, onClose }: Props) => {
                         {failed ? (
                             <View style={styles.fallback}>
                                 <Text style={styles.fallbackText}>Image unavailable</Text>
-                                <Pressable style={styles.fallbackBtn} onPress={openExternally}>
-                                    <Text style={styles.fallbackBtnText}>Try open externally</Text>
+                                <Pressable
+                                    style={styles.fallbackBtn}
+                                    onPress={openExternally}
+                                    disabled={opening}
+                                >
+                                    <Text style={styles.fallbackBtnText}>
+                                        {opening ? 'Opening…' : 'Try open externally'}
+                                    </Text>
                                 </Pressable>
                             </View>
                         ) : (
@@ -94,8 +139,16 @@ export const AttachmentViewer = ({ attachment, onClose }: Props) => {
                             {attachment.type === 'pdf' ? 'PDF document' : 'File attachment'}
                         </Text>
                         <Text style={styles.fallbackSub}>{attachment.mimeType}</Text>
-                        <Pressable style={styles.fallbackBtn} onPress={openExternally}>
-                            <Text style={styles.fallbackBtnText}>Open file</Text>
+                        <Pressable
+                            style={styles.fallbackBtn}
+                            onPress={openExternally}
+                            disabled={opening}
+                        >
+                            {opening ? (
+                                <ActivityIndicator color="#fff" />
+                            ) : (
+                                <Text style={styles.fallbackBtnText}>Open file</Text>
+                            )}
                         </Pressable>
                     </View>
                 )}
@@ -163,6 +216,7 @@ const styles = StyleSheet.create({
     fallbackBtn: {
         marginTop: 8,
         minHeight: 48,
+        minWidth: 140,
         paddingHorizontal: 20,
         borderRadius: 12,
         backgroundColor: '#0f766e',

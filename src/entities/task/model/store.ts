@@ -13,6 +13,7 @@ import {
     scheduleTaskNotification,
 } from '@/src/shared/lib/notifications';
 import { requestAutoSync } from '@/src/shared/api/auto-sync';
+import { mergeTaskLocation, normalizeTaskLocation } from '../lib/location';
 
 export type AddTaskResult = {
     warning?: string;
@@ -45,10 +46,7 @@ export class TaskStore {
                     const parsed: Task[] = JSON.parse(tasksData);
                     this.tasks = parsed.map(t => ({
                         ...t,
-                        location:
-                            typeof t.location === 'string'
-                                ? { address: t.location as unknown as string }
-                                : t.location,
+                        location: normalizeTaskLocation(t.location),
                         syncStatus: t.syncStatus ?? 'pending',
                         updatedAt: t.updatedAt ?? t.creationDate,
                     }));
@@ -259,7 +257,9 @@ export class TaskStore {
 
         runInAction(() => {
             this.tasks = this.tasks.filter(t => t.id !== task.id);
-            this.deletedTaskIds = [...this.deletedTaskIds, task.id];
+            if (!this.deletedTaskIds.includes(task.id)) {
+                this.deletedTaskIds = [...this.deletedTaskIds, task.id];
+            }
         });
         await this.saveTasks();
         await this.saveDeletedIds();
@@ -280,6 +280,7 @@ export class TaskStore {
     };
 
     importTask = async (task: Task) => {
+        if (this.deletedTaskIds.includes(task.id)) return;
         runInAction(() => {
             this.tasks = [task, ...this.tasks];
         });
@@ -287,6 +288,7 @@ export class TaskStore {
     };
 
     replaceTask = async (task: Task) => {
+        if (this.deletedTaskIds.includes(task.id)) return;
         runInAction(() => {
             this.tasks = this.tasks.map(t => (t.id === task.id ? task : t));
         });
@@ -294,23 +296,58 @@ export class TaskStore {
     };
 
     mergeTasksFromServer = async (serverTasks: Task[]) => {
-        for (const serverTask of serverTasks) {
+        const deleted = new Set(this.deletedTaskIds);
+
+        for (const raw of serverTasks) {
+            if (deleted.has(raw.id)) continue;
+
+            const serverTask: Task = {
+                ...raw,
+                location: normalizeTaskLocation(raw.location),
+                syncStatus: raw.syncStatus ?? 'synced',
+                updatedAt: raw.updatedAt ?? raw.creationDate,
+            };
+
             const local = this.getTaskById(serverTask.id);
             if (!local) {
-                await this.importTask({
-                    ...serverTask,
-                    syncStatus: serverTask.syncStatus ?? 'synced',
-                });
+                await this.importTask(serverTask);
                 continue;
             }
-            if (local.syncStatus === 'pending') continue;
+            if (local.syncStatus === 'pending') {
+                if (
+                    (local.location.latitude == null || local.location.longitude == null) &&
+                    serverTask.location.latitude != null &&
+                    serverTask.location.longitude != null
+                ) {
+                    await this.replaceTask({
+                        ...local,
+                        location: mergeTaskLocation(local.location, serverTask.location),
+                    });
+                }
+                continue;
+            }
             if (serverTask.updatedAt >= local.updatedAt) {
                 await this.replaceTask({
                     ...serverTask,
+                    location: mergeTaskLocation(local.location, serverTask.location),
                     syncStatus: 'synced',
+                });
+            } else if (
+                (local.location.latitude == null || local.location.longitude == null) &&
+                serverTask.location.latitude != null &&
+                serverTask.location.longitude != null
+            ) {
+                await this.replaceTask({
+                    ...local,
+                    location: mergeTaskLocation(local.location, serverTask.location),
                 });
             }
         }
+
+        runInAction(() => {
+            this.tasks = this.tasks.filter(t => !deleted.has(t.id));
+        });
+        await this.saveTasks();
     };
 
     markSynced = async (taskIds: string[]) => {
