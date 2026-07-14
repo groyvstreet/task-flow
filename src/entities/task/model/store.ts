@@ -7,9 +7,12 @@ import { STORAGE_KEYS } from '@/src/shared/lib/constants';
 import { actionStore } from '@/src/entities/action/model/store';
 import { attachmentStore } from '@/src/entities/attachment/model/store';
 import {
+    canScheduleDueReminder,
     cancelTaskNotification,
+    NOTIFICATION_TOO_SOON_MESSAGE,
     scheduleTaskNotification,
 } from '@/src/shared/lib/notifications';
+import { requestAutoSync } from '@/src/shared/api/auto-sync';
 
 export type AddTaskResult = {
     warning?: string;
@@ -112,7 +115,6 @@ export class TaskStore {
             updatedAt: Date.now(),
         };
 
-        // Persist first — never block create UI on notification permission / schedule.
         runInAction(() => {
             this.tasks = [newTask, ...this.tasks];
         });
@@ -125,27 +127,43 @@ export class TaskStore {
             description: `Task "${newTask.title}" created`,
         });
 
-        void this.attachNotification(newTask.id, newTask.title, newTask.dueDate);
+        const warning = canScheduleDueReminder(newTask.dueDate)
+            ? undefined
+            : NOTIFICATION_TOO_SOON_MESSAGE;
+        if (canScheduleDueReminder(newTask.dueDate)) {
+            void this.attachNotification(newTask.id, newTask.title, newTask.dueDate);
+        }
+        requestAutoSync();
 
-        return {};
+        return { warning };
     };
 
-    private attachNotification = async (taskId: string, title: string, dueDate: number) => {
+    private attachNotification = async (
+        taskId: string,
+        title: string,
+        dueDate: number,
+    ): Promise<string | undefined> => {
         try {
             const result = await scheduleTaskNotification(taskId, title, dueDate);
-            if (!result.notificationId) return;
             runInAction(() => {
                 this.tasks = this.tasks.map(t =>
-                    t.id === taskId ? { ...t, notificationId: result.notificationId! } : t,
+                    t.id === taskId
+                        ? { ...t, notificationId: result.notificationId ?? undefined }
+                        : t,
                 );
             });
             await this.saveTasks();
+            return result.warning;
         } catch (error) {
             console.warn('Failed to schedule notification', error);
+            return 'Task saved, but notification could not be scheduled on this device';
         }
     };
 
-    updateTask = async (task: Task, logDescription?: string) => {
+    updateTask = async (
+        task: Task,
+        logDescription?: string,
+    ): Promise<{ warning?: string } | void> => {
         const existing = this.tasks.find(t => t.id === task.id);
         if (!existing) return;
 
@@ -167,13 +185,11 @@ export class TaskStore {
             existing.location.latitude !== task.location.latitude ||
             existing.location.longitude !== task.location.longitude;
 
-        // Persist first — notification schedule must not block edit save.
         runInAction(() => {
             this.tasks = this.tasks.map(t => (t.id === task.id ? updated : t));
         });
         await this.saveTasks();
 
-        // Status-only change → one history entry. Content edits → "updated" (no duplicate status log).
         if (statusChanged && !contentChanged) {
             await actionStore.logAction({
                 taskId: task.id,
@@ -190,18 +206,40 @@ export class TaskStore {
             });
         }
 
+        requestAutoSync();
+
+        let warning: string | undefined;
         if (shouldRescheduleNotification) {
-            void (async () => {
-                try {
-                    if (existing.notificationId) {
-                        await cancelTaskNotification(existing.notificationId);
-                    }
-                    await this.attachNotification(updated.id, updated.title, updated.dueDate);
-                } catch (error) {
-                    console.warn('Failed to reschedule notification', error);
+            if (!canScheduleDueReminder(updated.dueDate)) {
+                warning = NOTIFICATION_TOO_SOON_MESSAGE;
+                if (existing.notificationId) {
+                    void cancelTaskNotification(existing.notificationId);
                 }
-            })();
+                runInAction(() => {
+                    this.tasks = this.tasks.map(t =>
+                        t.id === updated.id ? { ...t, notificationId: undefined } : t,
+                    );
+                });
+                void this.saveTasks();
+            } else {
+                void (async () => {
+                    try {
+                        if (existing.notificationId) {
+                            await cancelTaskNotification(existing.notificationId);
+                        }
+                        await this.attachNotification(
+                            updated.id,
+                            updated.title,
+                            updated.dueDate,
+                        );
+                    } catch (error) {
+                        console.warn('Failed to reschedule notification', error);
+                    }
+                })();
+            }
         }
+
+        return { warning };
     };
 
     updateStatus = async (taskId: string, status: Task['status']) => {
@@ -237,6 +275,8 @@ export class TaskStore {
         for (const att of taskAttachments) {
             await attachmentStore.removeAttachment(att, false);
         }
+
+        requestAutoSync();
     };
 
     importTask = async (task: Task) => {
@@ -253,7 +293,6 @@ export class TaskStore {
         await this.saveTasks();
     };
 
-    /** Last-write-wins: local pending changes keep priority */
     mergeTasksFromServer = async (serverTasks: Task[]) => {
         for (const serverTask of serverTasks) {
             const local = this.getTaskById(serverTask.id);

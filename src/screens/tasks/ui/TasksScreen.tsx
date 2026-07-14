@@ -22,7 +22,7 @@ export const TasksScreen = observer(() => {
             >
                 <View style={styles.headerText}>
                     <Text style={[styles.eyebrow, { color: colors.accent }]}>TaskFlow</Text>
-                    <Text style={[styles.title, { color: colors.text }]}>Today’s work</Text>
+                    <Text style={[styles.title, { color: colors.text }]}>PK-RN-2003</Text>
                     {taskStore.pendingSyncCount > 0 ? (
                         <Text style={[styles.pending, { color: colors.warning }]}>
                             {taskStore.pendingSyncCount} pending sync

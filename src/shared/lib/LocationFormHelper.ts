@@ -8,10 +8,6 @@ import {
 
 const DEBOUNCE_MS = 700;
 
-/**
- * Shared address ↔ coordinates sync for create/edit forms.
- * Uses expo-location geocodeAsync / reverseGeocodeAsync with debounce + loop guards.
- */
 export class LocationFormHelper {
     location: TaskLocation = { address: '' };
     isGeocoding = false;
@@ -21,7 +17,6 @@ export class LocationFormHelper {
     private coordsTimer: ReturnType<typeof setTimeout> | null = null;
     private addressRequestId = 0;
     private coordsRequestId = 0;
-    /** Skip reverse when coords were filled by geocode; skip geocode when address filled by reverse */
     private suppressGeocode = false;
     private suppressReverse = false;
 
@@ -62,9 +57,6 @@ export class LocationFormHelper {
         }, DEBOUNCE_MS);
     };
 
-    /**
-     * Partial coordinate edits (string inputs). Reverse-geocodes when both values are valid numbers.
-     */
     setLocationCoordinateFields = (latitudeText: string, longitudeText: string) => {
         const lat = parseFloat(latitudeText);
         const lng = parseFloat(longitudeText);

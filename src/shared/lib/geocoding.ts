@@ -23,10 +23,6 @@ const formatAddressParts = (place: Location.LocationGeocodedAddress): string => 
         .join(', ');
 };
 
-/**
- * Android requires foreground location permission before geocodeAsync / reverseGeocodeAsync.
- * Docs: https://docs.expo.dev/versions/v56.0.0/sdk/location/
- */
 export const ensureLocationPermission = async (): Promise<boolean> => {
     const current = await Location.getForegroundPermissionsAsync();
     if (current.status === Location.PermissionStatus.GRANTED) {
@@ -37,7 +33,6 @@ export const ensureLocationPermission = async (): Promise<boolean> => {
     return requested.status === Location.PermissionStatus.GRANTED;
 };
 
-/** Address → coordinates via expo-location geocodeAsync */
 export const geocodeAddress = async (address: string): Promise<GeocodeCoords | null> => {
     const query = address.trim();
     if (query.length < 3) return null;
@@ -63,7 +58,6 @@ export const geocodeAddress = async (address: string): Promise<GeocodeCoords | n
     }
 };
 
-/** Coordinates → address via expo-location reverseGeocodeAsync */
 export const reverseGeocodeCoords = async (
     latitude: number,
     longitude: number,

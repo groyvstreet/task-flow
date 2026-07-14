@@ -88,7 +88,10 @@ export const TaskUpdating = observer(({ id }: Props) => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await store.updateTask();
+            const result = await store.updateTask();
+            if (result?.warning) {
+                toastStore.show(result.warning, 'warning', 5000);
+            }
         } finally {
             setSaving(false);
         }

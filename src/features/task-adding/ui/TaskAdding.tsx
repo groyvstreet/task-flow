@@ -1,6 +1,5 @@
 import {
     ActivityIndicator,
-    Alert,
     Modal,
     Pressable,
     ScrollView,
@@ -11,7 +10,7 @@ import {
 } from 'react-native';
 import { useTaskAddingStore } from '../model/store';
 import { observer } from 'mobx-react-lite';
-import { DateTimePicker, OptionPicker } from '@/src/shared/ui';
+import { DateTimePicker, OptionPicker, toastStore } from '@/src/shared/ui';
 import { Plus, X } from 'lucide-react-native';
 import { pickImage, pickDocument } from '@/src/features/attachment-picker';
 import { AttachmentList } from '@/src/entities/attachment';
@@ -42,7 +41,7 @@ export const TaskAdding = observer(() => {
         const result = await store.addTask();
         if (!result.ok) return;
         if (result.warning) {
-            Alert.alert('Task created', result.warning);
+            toastStore.show(result.warning, 'warning', 5000);
         }
     };
 

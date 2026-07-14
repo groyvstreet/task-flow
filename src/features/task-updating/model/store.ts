@@ -97,7 +97,6 @@ export class TaskUpdatingStore {
         this.locationForm.setLocationCoordinateFields(latitudeText, longitudeText);
     };
 
-    /** @deprecated use setLocationCoordinateFields — kept for call-site compatibility */
     setLocationCoordinates = (latitude: string, longitude: string) => {
         this.setLocationCoordinateFields(latitude, longitude);
     };
@@ -128,7 +127,7 @@ export class TaskUpdatingStore {
         this.existingAttachments = attachmentStore.getByTaskId(attachment.taskId);
     };
 
-    updateTask = async () => {
+    updateTask = async (): Promise<{ warning?: string } | void> => {
         this.errors = validateTaskForm(
             {
                 title: this.title,
@@ -150,7 +149,7 @@ export class TaskUpdatingStore {
             status: this.status,
         };
 
-        await this.taskStore.updateTask(updatedTask);
+        const result = await this.taskStore.updateTask(updatedTask);
 
         for (const att of this.pendingAttachments) {
             await attachmentStore.addAttachment(att);
@@ -160,6 +159,8 @@ export class TaskUpdatingStore {
         this.existingAttachments = attachmentStore.getByTaskId(updatedTask.id);
         this.pendingAttachments = [];
         this.isEditing = false;
+
+        return result ?? undefined;
     };
 
     updateStatus = async (status: Task['status']) => {

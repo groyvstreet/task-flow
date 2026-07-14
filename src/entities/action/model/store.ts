@@ -5,12 +5,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/shared/lib/constants';
 import { randomUUID } from 'expo-crypto';
 import { ActionService } from '../api/service';
+import { requestAutoSync } from '@/src/shared/api/auto-sync';
 
 type LogActionParams = {
     taskId: string;
     taskTitle?: string;
     type: ActionType;
     description: string;
+    synced?: boolean;
 };
 
 export class ActionStore {
@@ -48,13 +50,16 @@ export class ActionStore {
             type: params.type,
             description: params.description,
             timestamp: Date.now(),
-            synced: false,
+            synced: params.synced ?? false,
         };
 
         runInAction(() => {
             this.actions = [action, ...this.actions];
         });
         await this.saveActions();
+        if (!action.synced) {
+            requestAutoSync();
+        }
         return action;
     };
 
@@ -63,6 +68,19 @@ export class ActionStore {
             this.actions = this.actions.map(a =>
                 actionIds.includes(a.id) ? { ...a, synced: true } : a,
             );
+        });
+        await this.saveActions();
+    };
+
+    mergeFromServer = async (serverActions: Action[]) => {
+        const unsynced = this.actions.filter(a => !a.synced);
+        const unsyncedIds = new Set(unsynced.map(a => a.id));
+        const fromServer = serverActions
+            .filter(a => !unsyncedIds.has(a.id))
+            .map(a => ({ ...a, synced: true as const }));
+
+        runInAction(() => {
+            this.actions = [...unsynced, ...fromServer];
         });
         await this.saveActions();
     };

@@ -1,5 +1,5 @@
 import { observer } from 'mobx-react-lite';
-import MapView, { Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
+import MapView, { Callout, Marker, PROVIDER_GOOGLE, type Region } from 'react-native-maps';
 import { useTaskStore } from '@/src/entities/task';
 import { EmptyState, TaskStatusBadge } from '@/src/shared/ui';
 import { router } from 'expo-router';
@@ -7,7 +7,7 @@ import { FlatList, Platform, Pressable, StyleSheet, Text, View } from 'react-nat
 import { isGoogleMapsConfigured } from '@/src/shared/lib/maps';
 import { MapPin } from 'lucide-react-native';
 import { formatDateTime } from '@/src/shared/lib/format';
-import { Task } from '@/src/entities/task/model/types';
+import { TASK_STATUS_LABELS, Task } from '@/src/entities/task/model/types';
 import { useMemo, useState } from 'react';
 
 const DEFAULT_REGION: Region = {
@@ -105,7 +105,6 @@ export const TaskMap = observer(() => {
                 style={styles.map}
                 provider={Platform.OS === 'android' ? PROVIDER_GOOGLE : undefined}
                 mapType="standard"
-                // No customMapStyle — keeps default Google tiles + visible Google logo
                 initialRegion={initialRegion}
                 showsCompass
                 showsScale
@@ -119,11 +118,35 @@ export const TaskMap = observer(() => {
                             latitude: task.location.latitude!,
                             longitude: task.location.longitude!,
                         }}
-                        title={task.title}
-                        description={task.location.address}
                         pinColor="#0f766e"
+                        tracksViewChanges={false}
                         onCalloutPress={() => router.push(`/${task.id}`)}
-                    />
+                    >
+                        <Callout tooltip onPress={() => router.push(`/${task.id}`)}>
+                            <View style={styles.callout}>
+                                <View style={styles.calloutAccent} />
+                                <View style={styles.calloutBody}>
+                                    <Text style={styles.calloutTitle} numberOfLines={2}>
+                                        {task.title}
+                                    </Text>
+                                    <Text style={styles.calloutAddress} numberOfLines={2}>
+                                        {task.location.address}
+                                    </Text>
+                                    <View style={styles.calloutMetaRow}>
+                                        <View style={styles.calloutChip}>
+                                            <Text style={styles.calloutChipText}>
+                                                {TASK_STATUS_LABELS[task.status]}
+                                            </Text>
+                                        </View>
+                                        <Text style={styles.calloutDue} numberOfLines={1}>
+                                            Due {formatDateTime(task.dueDate)}
+                                        </Text>
+                                    </View>
+                                    <Text style={styles.calloutHint}>Tap to open</Text>
+                                </View>
+                            </View>
+                        </Callout>
+                    </Marker>
                 ))}
             </MapView>
         </View>
@@ -139,6 +162,79 @@ const styles = StyleSheet.create({
     map: {
         flex: 1,
         width: '100%',
+    },
+    callout: {
+        width: 260,
+        flexDirection: 'row',
+        backgroundColor: '#ffffff',
+        borderRadius: 14,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: '#ccfbf1',
+        ...Platform.select({
+            ios: {
+                shadowColor: '#0f172a',
+                shadowOpacity: 0.18,
+                shadowRadius: 12,
+                shadowOffset: { width: 0, height: 6 },
+            },
+            android: {
+                elevation: 6,
+            },
+        }),
+    },
+    calloutAccent: {
+        width: 4,
+        backgroundColor: '#0f766e',
+    },
+    calloutBody: {
+        flex: 1,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        gap: 4,
+    },
+    calloutTitle: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: '#0f172a',
+        letterSpacing: -0.2,
+    },
+    calloutAddress: {
+        fontSize: 12,
+        color: '#64748b',
+        lineHeight: 16,
+    },
+    calloutMetaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 4,
+        flexWrap: 'wrap',
+    },
+    calloutChip: {
+        backgroundColor: '#f0fdfa',
+        borderRadius: 999,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderWidth: 1,
+        borderColor: '#99f6e4',
+    },
+    calloutChipText: {
+        fontSize: 11,
+        fontWeight: '700',
+        color: '#0f766e',
+    },
+    calloutDue: {
+        flex: 1,
+        fontSize: 11,
+        color: '#94a3b8',
+        fontWeight: '600',
+    },
+    calloutHint: {
+        marginTop: 2,
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#0f766e',
     },
     banner: {
         backgroundColor: '#fffbeb',

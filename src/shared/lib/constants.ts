@@ -7,5 +7,4 @@ export const STORAGE_KEYS = {
 } as const;
 
 export const NOTIFICATION_MINUTES_BEFORE = 30;
-export const NOTIFICATION_FALLBACK_MINUTES_BEFORE = 1;
 export const DEMO_NOTIFICATION_DELAY_SECONDS = 45;

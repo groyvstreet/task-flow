@@ -18,7 +18,7 @@ export const MapScreen = observer(() => {
                 <Text style={[styles.eyebrow, { color: colors.accent }]}>Locations</Text>
                 <Text style={[styles.title, { color: colors.text }]}>Task map</Text>
                 <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-                    Pins for tasks with coordinates
+                    (PK-RN-2003) Pins for tasks with coordinates
                 </Text>
             </View>
             <TaskMap />

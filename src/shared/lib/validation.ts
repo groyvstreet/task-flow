@@ -10,7 +10,6 @@ export type TaskFormFields = {
 export type ValidationErrors = Partial<Record<keyof TaskFormFields | 'dueDate', string>>;
 
 export type ValidateTaskFormOptions = {
-    /** When editing, allow existing past due dates */
     isEditing?: boolean;
 };
 

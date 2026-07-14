@@ -4,8 +4,6 @@
     <item name="colorPrimary">@color/colorPrimary</item>
     <item name="android:statusBarColor">@android:color/transparent</item>
     <item name="android:navigationBarColor">@android:color/transparent</item>
-    <!-- Prevent Android force-dark from turning Google Maps into a black screen -->
-    <item name="android:forceDarkAllowed" tools:targetApi="q">false</item>
   </style>
   <style name="Theme.App.SplashScreen" parent="Theme.SplashScreen">
     <item name="windowSplashScreenBackground">@color/splashscreen_background</item>

@@ -22,7 +22,7 @@ export const HistoryScreen = observer(() => {
                 <Text style={[styles.eyebrow, { color: colors.accent }]}>Audit</Text>
                 <Text style={[styles.title, { color: colors.text }]}>Activity history</Text>
                 <Text style={[styles.subtitle, { color: colors.textMuted }]}>
-                    Creates, edits, status changes, attachments, and sync events
+                    (PK-RN-2003) Creates, edits, status changes, attachments, and sync events
                 </Text>
             </View>
 

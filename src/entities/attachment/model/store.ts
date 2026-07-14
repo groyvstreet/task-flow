@@ -5,6 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/shared/lib/constants';
 import { actionStore } from '@/src/entities/action/model/store';
 import { AttachmentService } from '../api/service';
+import { requestAutoSync } from '@/src/shared/api/auto-sync';
 
 export class AttachmentStore {
     private attachmentService: AttachmentService;
@@ -37,6 +38,19 @@ export class AttachmentStore {
         return this.attachments.filter(a => a.taskId === taskId);
     };
 
+    mergeFromServer = async (serverAttachments: Attachment[]) => {
+        const byId = new Map(this.attachments.map(a => [a.id, a]));
+        for (const remote of serverAttachments) {
+            if (!byId.has(remote.id)) {
+                byId.set(remote.id, remote);
+            }
+        }
+        runInAction(() => {
+            this.attachments = Array.from(byId.values());
+        });
+        await this.saveAttachments();
+    };
+
     addAttachment = async (attachment: Attachment) => {
         runInAction(() => {
             this.attachments = [attachment, ...this.attachments];
@@ -48,6 +62,7 @@ export class AttachmentStore {
             type: 'attachment_added',
             description: `Attachment "${attachment.name}" added`,
         });
+        requestAutoSync();
     };
 
     removeAttachment = async (attachment: Attachment, log = true) => {
@@ -63,6 +78,7 @@ export class AttachmentStore {
                 description: `Attachment "${attachment.name}" removed`,
             });
         }
+        requestAutoSync();
     };
 }
 

@@ -26,7 +26,6 @@ type Props = {
     error?: string;
 };
 
-/** Nested-modal-safe picker — works inside React Native Modal unlike Gluestack Select portals. */
 export const OptionPicker = observer(({
     label,
     placeholder = 'Select…',

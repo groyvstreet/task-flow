@@ -1,10 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Alert, Platform } from 'react-native';
-import {
-    DEMO_NOTIFICATION_DELAY_SECONDS,
-    NOTIFICATION_FALLBACK_MINUTES_BEFORE,
-    NOTIFICATION_MINUTES_BEFORE,
-} from './constants';
+import { DEMO_NOTIFICATION_DELAY_SECONDS, NOTIFICATION_MINUTES_BEFORE } from './constants';
 
 Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -23,7 +19,12 @@ export type NotificationScheduleResult = {
 
 const CHANNEL_ID = 'task-reminders';
 
-/** Android 13+: create channel before asking for notification permission. */
+export const NOTIFICATION_TOO_SOON_MESSAGE = `Reminder will not be scheduled because less than ${NOTIFICATION_MINUTES_BEFORE} minutes remain until the due date.`;
+
+export const canScheduleDueReminder = (dueDate: number, now = Date.now()): boolean => {
+    return dueDate - now >= NOTIFICATION_MINUTES_BEFORE * 60_000;
+};
+
 const ensureAndroidChannel = async () => {
     if (Platform.OS !== 'android') return;
     await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
@@ -61,44 +62,30 @@ export const scheduleTaskNotification = async (
     dueDate: number,
 ): Promise<NotificationScheduleResult> => {
     try {
+        if (!canScheduleDueReminder(dueDate)) {
+            return {
+                notificationId: null,
+                warning: NOTIFICATION_TOO_SOON_MESSAGE,
+            };
+        }
+
         const hasPermission = await requestNotificationPermissions();
         if (!hasPermission) {
             return { notificationId: null, warning: 'Notification permission denied' };
         }
 
-        const now = Date.now();
-        const diffMinutes = (dueDate - now) / 60000;
-
-        let triggerDate: Date;
-        let warning: string | undefined;
-        let minutesLabel: number;
-
-        if (diffMinutes < NOTIFICATION_MINUTES_BEFORE) {
-            if (diffMinutes <= NOTIFICATION_FALLBACK_MINUTES_BEFORE) {
-                return {
-                    notificationId: null,
-                    warning: 'Due date is too soon to schedule a reminder notification',
-                };
-            }
-            minutesLabel = NOTIFICATION_FALLBACK_MINUTES_BEFORE;
-            triggerDate = new Date(dueDate - NOTIFICATION_FALLBACK_MINUTES_BEFORE * 60000);
-            warning = `Due date is less than ${NOTIFICATION_MINUTES_BEFORE} minutes away. Notification scheduled ${NOTIFICATION_FALLBACK_MINUTES_BEFORE} minute before due time.`;
-        } else {
-            minutesLabel = NOTIFICATION_MINUTES_BEFORE;
-            triggerDate = new Date(dueDate - NOTIFICATION_MINUTES_BEFORE * 60000);
-        }
-
+        const triggerDate = new Date(dueDate - NOTIFICATION_MINUTES_BEFORE * 60_000);
         if (triggerDate.getTime() <= Date.now()) {
             return {
                 notificationId: null,
-                warning: 'Could not schedule reminder — trigger time is already in the past',
+                warning: NOTIFICATION_TOO_SOON_MESSAGE,
             };
         }
 
         const notificationId = await Notifications.scheduleNotificationAsync({
             content: {
                 title: 'Task Reminder',
-                body: `"${title}" is due in ${minutesLabel} minutes`,
+                body: `"${title}" is due in ${NOTIFICATION_MINUTES_BEFORE} minutes`,
                 data: { taskId },
             },
             trigger: {
@@ -108,7 +95,7 @@ export const scheduleTaskNotification = async (
             },
         });
 
-        return { notificationId, warning };
+        return { notificationId };
     } catch (error) {
         console.warn('scheduleTaskNotification failed', error);
         return {
@@ -127,18 +114,16 @@ export const cancelTaskNotification = async (notificationId?: string) => {
     }
 };
 
-/**
- * Demo reminder. Tries the normal expo-notifications schedule first.
- * If native scheduling does not resolve quickly, falls back to an in-app timer
- * (Alert) so the button always gives visible feedback while the app is open.
- */
 export const scheduleDemoNotification = async (
     taskId: string,
     title: string,
 ): Promise<NotificationScheduleResult> => {
     const hasPermission = await requestNotificationPermissions();
     if (!hasPermission) {
-        return { notificationId: null, warning: 'Notification permission denied. Enable notifications in system settings.' };
+        return {
+            notificationId: null,
+            warning: 'Notification permission denied. Enable notifications in system settings.',
+        };
     }
 
     const content = {
@@ -173,7 +158,6 @@ export const scheduleDemoNotification = async (
         return { notificationId: raced.id };
     }
 
-    // Fallback: visible reminder even if native schedule hangs/fails (app must stay open).
     setTimeout(() => {
         void (async () => {
             try {
