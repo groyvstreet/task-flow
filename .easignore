@@ -1,0 +1,9 @@
+# EAS Build upload ignore — keep CNG (prebuild on server), do not ship local native projects
+/android
+/ios
+
+# Local tooling / caches
+.expo/
+.claude/
+.vscode/
+node_modules/

@@ -83,7 +83,13 @@
       "reactCompiler": true
     },
     "extra": {
-      "googleMapsApiKey": "AIzaSyAcu58a39__y4GPpDcU5lYehG1A9aE-Wmk"
+      "googleMapsApiKey": "AIzaSyAcu58a39__y4GPpDcU5lYehG1A9aE-Wmk",
+      "router": {
+        "root": "./app"
+      },
+      "eas": {
+        "projectId": "b2fe303b-4611-4a68-85c2-15ca970cc54d"
+      }
     }
   }
 }
