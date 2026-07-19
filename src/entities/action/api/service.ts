@@ -1,5 +1,5 @@
 import { Action } from '../model/types';
-import { firebaseClient } from '@/src/shared/api/client';
+import { firebaseClient } from '@/src/shared/api';
 
 export class ActionService {
     getActions = async (): Promise<Action[]> => {
@@ -10,5 +10,9 @@ export class ActionService {
 
     addAction = async (action: Action): Promise<void> => {
         await firebaseClient.put(`/actions/${action.id}.json`, action);
+    };
+
+    clearAll = async (): Promise<void> => {
+        await firebaseClient.delete('/actions.json');
     };
 }

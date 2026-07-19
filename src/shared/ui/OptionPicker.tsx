@@ -8,7 +8,7 @@ import {
     View,
 } from 'react-native';
 import { Check, ChevronDown } from 'lucide-react-native';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors } from '@/src/shared/theme';
 import { observer } from 'mobx-react-lite';
 
 export type OptionPickerItem = {
@@ -137,9 +137,9 @@ const styles = StyleSheet.create({
     wrap: { gap: 6 },
     label: { fontSize: 13, fontWeight: '600' },
     trigger: {
-        minHeight: 48,
-        borderWidth: 1,
-        borderRadius: 12,
+        minHeight: 50,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: 14,
         paddingHorizontal: 14,
         flexDirection: 'row',
         alignItems: 'center',

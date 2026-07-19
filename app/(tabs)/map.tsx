@@ -1,5 +1,5 @@
-import { MapScreen } from '@/src/screens/map';
+import { MapPage } from '@/src/pages/map';
 
-export default function MapTab() {
-    return <MapScreen />;
+export default function MapRoute() {
+    return <MapPage />;
 }

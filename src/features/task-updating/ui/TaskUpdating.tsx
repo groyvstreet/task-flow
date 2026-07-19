@@ -1,15 +1,15 @@
 import { useTaskUpdatingStore } from '../model/store';
 import { observer } from 'mobx-react-lite';
-import { DateTimePicker, OptionPicker, TaskStatusBadge } from '@/src/shared/ui';
+import { DateTimePicker, OptionPicker, toastStore } from '@/src/shared/ui';
 import { useEffect, useState } from 'react';
-import { pickImage, pickDocument } from '@/src/features/attachment-picker';
-import { AttachmentList } from '@/src/entities/attachment';
-import { ActionList } from '@/src/entities/action/ui/ActionList';
-import { formatDateTime } from '@/src/shared/lib/format';
-import { TASK_STATUS_LABELS, TaskStatus } from '@/src/entities/task/model/types';
-import { DEMO_NOTIFICATION_DELAY_SECONDS } from '@/src/shared/lib/constants';
-import { scheduleDemoNotification } from '@/src/shared/lib/notifications';
-import { toastStore } from '@/src/shared/ui';
+import { AttachmentList, pickImage, pickDocument } from '@/src/entities/attachment';
+import { ActionList } from '@/src/entities/action';
+import { formatDateTime, DEMO_NOTIFICATION_DELAY_SECONDS, scheduleDemoNotification } from '@/src/shared/lib';
+import {
+    TASK_STATUS_LABELS,
+    TaskStatusBadge,
+    type TaskStatus,
+} from '@/src/entities/task';
 import { router } from 'expo-router';
 import {
     ActivityIndicator,
@@ -22,7 +22,7 @@ import {
     View,
 } from 'react-native';
 import { ArrowLeft, Bell, MapPin, Pencil, Trash2 } from 'lucide-react-native';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors, Fonts } from '@/src/shared/theme';
 
 type Props = { id: string };
 
@@ -111,12 +111,7 @@ export const TaskUpdating = observer(({ id }: Props) => {
     if (!store.isEditing) {
         return (
             <View style={[styles.wrap, { backgroundColor: colors.bg }]}>
-                <View
-                    style={[
-                        styles.topBar,
-                        { backgroundColor: colors.surface, borderBottomColor: colors.border },
-                    ]}
-                >
+                <View style={styles.topBar}>
                     <Pressable
                         style={[styles.iconBtn, { backgroundColor: colors.surfaceMuted }]}
                         onPress={() => router.back()}
@@ -146,12 +141,12 @@ export const TaskUpdating = observer(({ id }: Props) => {
                     <View
                         style={[
                             styles.locationBox,
-                            { backgroundColor: colors.accentSoft, borderColor: colors.accentBorder },
+                            { backgroundColor: colors.surfaceMuted },
                         ]}
                     >
-                        <MapPin size={16} color={colors.accent} />
+                        <MapPin size={16} color={colors.textMuted} strokeWidth={1.75} />
                         <View style={{ flex: 1 }}>
-                            <Text style={[styles.locationText, { color: colors.accent }]}>
+                            <Text style={[styles.locationText, { color: colors.text }]}>
                                 {store.originalTask.location.address}
                             </Text>
                             {store.originalTask.location.latitude != null ? (
@@ -175,8 +170,9 @@ export const TaskUpdating = observer(({ id }: Props) => {
                                     style={[
                                         styles.chip,
                                         {
-                                            borderColor: active ? colors.accent : colors.border,
-                                            backgroundColor: active ? colors.accent : colors.surface,
+                                            backgroundColor: active
+                                                ? colors.accent
+                                                : colors.surfaceMuted,
                                         },
                                     ]}
                                     onPress={() => store.updateStatus(s)}
@@ -184,8 +180,8 @@ export const TaskUpdating = observer(({ id }: Props) => {
                                     <Text
                                         style={{
                                             fontSize: 13,
-                                            fontWeight: '600',
-                                            color: active ? '#fff' : colors.textSecondary,
+                                            fontFamily: Fonts.medium,
+                                            color: active ? colors.onAccent : colors.textSecondary,
                                         }}
                                     >
                                         {TASK_STATUS_LABELS[s]}
@@ -200,21 +196,20 @@ export const TaskUpdating = observer(({ id }: Props) => {
                             style={[styles.primaryBtn, { backgroundColor: colors.fab }]}
                             onPress={store.startEditing}
                         >
-                            <Pencil size={16} color="#fff" />
-                            <Text style={styles.primaryBtnText}>Edit</Text>
+                            <Pencil size={16} color={colors.onAccent} strokeWidth={1.75} />
+                            <Text style={[styles.primaryBtnText, { color: colors.onAccent }]}>
+                                Edit
+                            </Text>
                         </Pressable>
                         <Pressable
                             style={[
                                 styles.secondaryBtn,
-                                {
-                                    borderColor: colors.accentBorder,
-                                    backgroundColor: colors.accentSoft,
-                                },
+                                { backgroundColor: colors.surfaceMuted },
                             ]}
                             onPress={handleDemoNotification}
                         >
-                            <Bell size={16} color={colors.accent} />
-                            <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>
+                            <Bell size={16} color={colors.text} strokeWidth={1.75} />
+                            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
                                 Demo notify
                             </Text>
                         </Pressable>
@@ -276,12 +271,7 @@ export const TaskUpdating = observer(({ id }: Props) => {
 
     return (
         <View style={[styles.wrap, { backgroundColor: colors.bg }]}>
-            <View
-                style={[
-                    styles.topBar,
-                    { backgroundColor: colors.surface, borderBottomColor: colors.border },
-                ]}
-            >
+            <View style={styles.topBar}>
                 <Pressable
                     style={[styles.iconBtn, { backgroundColor: colors.surfaceMuted }]}
                     onPress={store.cancelEditing}
@@ -417,27 +407,23 @@ export const TaskUpdating = observer(({ id }: Props) => {
                             style={[
                                 styles.secondaryBtn,
                                 {
-                                    borderColor: colors.accentBorder,
-                                    backgroundColor: colors.accentSoft,
+                                    backgroundColor: colors.surfaceMuted,
                                 },
                             ]}
                             onPress={handlePickImage}
                         >
-                            <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>
+                            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
                                 Add image
                             </Text>
                         </Pressable>
                         <Pressable
                             style={[
                                 styles.secondaryBtn,
-                                {
-                                    borderColor: colors.accentBorder,
-                                    backgroundColor: colors.accentSoft,
-                                },
+                                { backgroundColor: colors.surfaceMuted },
                             ]}
                             onPress={handlePickDocument}
                         >
-                            <Text style={[styles.secondaryBtnText, { color: colors.accent }]}>
+                            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
                                 Add file
                             </Text>
                         </Pressable>
@@ -465,9 +451,11 @@ export const TaskUpdating = observer(({ id }: Props) => {
                         disabled={saving}
                     >
                         {saving ? (
-                            <ActivityIndicator color="#fff" />
+                            <ActivityIndicator color={colors.onAccent} />
                         ) : (
-                            <Text style={styles.primaryBtnText}>Save</Text>
+                            <Text style={[styles.primaryBtnText, { color: colors.onAccent }]}>
+                                Save
+                            </Text>
                         )}
                     </Pressable>
                     <Pressable
@@ -475,8 +463,7 @@ export const TaskUpdating = observer(({ id }: Props) => {
                             styles.secondaryBtn,
                             {
                                 flex: 1,
-                                borderColor: colors.border,
-                                backgroundColor: colors.surface,
+                                backgroundColor: colors.surfaceMuted,
                             },
                         ]}
                         onPress={store.cancelEditing}
@@ -499,11 +486,10 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 12,
-        paddingVertical: 8,
-        borderBottomWidth: StyleSheet.hairlineWidth,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
     },
-    topTitle: { fontSize: 16, fontWeight: '700' },
+    topTitle: { fontSize: 16, fontFamily: Fonts.semibold },
     iconBtn: {
         width: 40,
         height: 40,
@@ -511,33 +497,35 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    content: { padding: 16, gap: 14, paddingBottom: 40 },
+    content: { padding: 20, gap: 14, paddingBottom: 40 },
     titleRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
-    title: { flex: 1, fontSize: 24, fontWeight: '800' },
-    body: { fontSize: 15, lineHeight: 22 },
-    meta: { fontSize: 14, fontWeight: '600' },
+    title: {
+        flex: 1,
+        fontSize: 26,
+        fontFamily: Fonts.bold,
+        letterSpacing: -0.5,
+    },
+    body: { fontSize: 15, lineHeight: 22, fontFamily: Fonts.regular },
+    meta: { fontSize: 14, fontFamily: Fonts.medium },
     locationBox: {
         flexDirection: 'row',
         gap: 10,
         padding: 14,
         borderRadius: 14,
-        borderWidth: 1,
     },
-    locationText: { fontSize: 14, fontWeight: '600' },
-    coords: { fontSize: 12, marginTop: 2 },
+    locationText: { fontSize: 14, fontFamily: Fonts.medium },
+    coords: { fontSize: 12, marginTop: 2, fontFamily: Fonts.regular },
     section: {
         marginTop: 4,
         fontSize: 12,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+        fontFamily: Fonts.medium,
+        letterSpacing: 0.2,
     },
     chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     chip: {
         minHeight: 40,
         paddingHorizontal: 14,
-        borderRadius: 999,
-        borderWidth: 1,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -545,39 +533,40 @@ const styles = StyleSheet.create({
     primaryBtn: {
         minHeight: 48,
         paddingHorizontal: 16,
-        borderRadius: 12,
+        borderRadius: 14,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 8,
     },
-    primaryBtnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+    primaryBtnText: { fontFamily: Fonts.semibold, fontSize: 15 },
     secondaryBtn: {
         minHeight: 48,
         paddingHorizontal: 14,
-        borderRadius: 12,
-        borderWidth: 1,
+        borderRadius: 14,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
         gap: 6,
+        borderWidth: 0,
     },
-    secondaryBtnText: { fontWeight: '700', fontSize: 14 },
+    secondaryBtnText: { fontFamily: Fonts.medium, fontSize: 14 },
     dangerBtn: {
         width: 48,
         height: 48,
-        borderRadius: 12,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
     field: { gap: 6 },
-    label: { fontSize: 13, fontWeight: '600' },
+    label: { fontSize: 12, fontFamily: Fonts.medium },
     input: {
-        minHeight: 48,
-        borderWidth: 1,
-        borderRadius: 12,
+        minHeight: 50,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: 14,
         paddingHorizontal: 14,
         fontSize: 16,
+        fontFamily: Fonts.regular,
     },
     textarea: { minHeight: 110, paddingTop: 12, paddingBottom: 12 },
     row: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
@@ -587,22 +576,22 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: 24,
     },
-    dialog: { width: '100%', borderRadius: 18, padding: 20, gap: 10 },
-    dialogTitle: { fontSize: 18, fontWeight: '700' },
+    dialog: { width: '100%', borderRadius: 20, padding: 20, gap: 10 },
+    dialogTitle: { fontSize: 18, fontFamily: Fonts.semibold },
     dialogActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
     dialogCancel: {
         flex: 1,
         minHeight: 46,
-        borderRadius: 12,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
     dialogDelete: {
         flex: 1,
         minHeight: 46,
-        borderRadius: 12,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    dialogDeleteText: { fontWeight: '700', color: '#fff' },
+    dialogDeleteText: { fontFamily: Fonts.semibold, color: '#fff' },
 });

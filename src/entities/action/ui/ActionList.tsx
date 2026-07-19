@@ -2,7 +2,7 @@ import { useActionStore } from '../model/store';
 import { observer } from 'mobx-react-lite';
 import { ActionText } from './ActionText';
 import { StyleSheet, Text, View } from 'react-native';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors } from '@/src/shared/theme';
 
 type Props = { taskId: string };
 

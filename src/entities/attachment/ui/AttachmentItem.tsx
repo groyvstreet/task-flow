@@ -2,8 +2,8 @@ import { Attachment } from '../model/types';
 import { FileText, ImageIcon } from 'lucide-react-native';
 import { useState } from 'react';
 import { Image, Pressable, StyleSheet, Text, View } from 'react-native';
-import { AttachmentViewer } from '@/src/shared/ui/AttachmentViewer';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { AttachmentViewer } from '@/src/shared/ui';
+import { useThemeColors } from '@/src/shared/theme';
 import { observer } from 'mobx-react-lite';
 
 type Props = {
@@ -65,7 +65,7 @@ export const AttachmentItem = observer(({ attachment, onDelete }: Props) => {
             </Pressable>
 
             <AttachmentViewer
-                attachment={viewerOpen ? attachment : null}
+                item={viewerOpen ? attachment : null}
                 onClose={() => setViewerOpen(false)}
             />
         </>

@@ -1,27 +1,29 @@
 import { Tabs } from 'expo-router';
 import { ClipboardList, History, Map } from 'lucide-react-native';
-import { themeStore } from '@/src/features/theme-toggle/model/store';
+import { themeStore } from '@/src/features/theme-toggle';
+import { getThemeColors } from '@/src/shared/theme';
 import { observer } from 'mobx-react-lite';
+import { StyleSheet } from 'react-native';
 
 const TabsLayout = observer(() => {
-    const isDark = themeStore.mode === 'dark';
+    const colors = getThemeColors(themeStore.mode);
 
     return (
         <Tabs
             screenOptions={{
                 headerShown: false,
-                tabBarActiveTintColor: '#0f766e',
-                tabBarInactiveTintColor: isDark ? '#94a3b8' : '#64748b',
-                tabBarLabelStyle: {
-                    fontSize: 12,
-                    fontWeight: '600',
-                },
+                tabBarShowLabel: false,
+                tabBarActiveTintColor: colors.accent,
+                tabBarInactiveTintColor: colors.textMuted,
                 tabBarStyle: {
-                    backgroundColor: isDark ? '#0f172a' : '#ffffff',
-                    borderTopColor: isDark ? '#1e293b' : '#e2e8f0',
-                    height: 60,
-                    paddingBottom: 8,
-                    paddingTop: 6,
+                    backgroundColor: colors.surface,
+                    borderTopColor: colors.border,
+                    borderTopWidth: StyleSheet.hairlineWidth,
+                    height: 52,
+                    paddingBottom: 4,
+                    paddingTop: 4,
+                    elevation: 0,
+                    shadowOpacity: 0,
                 },
             }}
         >
@@ -30,7 +32,7 @@ const TabsLayout = observer(() => {
                 options={{
                     title: 'Tasks',
                     tabBarIcon: ({ color, size }) => (
-                        <ClipboardList color={color} size={size} />
+                        <ClipboardList color={color} size={size} strokeWidth={1.75} />
                     ),
                 }}
             />
@@ -38,7 +40,9 @@ const TabsLayout = observer(() => {
                 name="map"
                 options={{
                     title: 'Map',
-                    tabBarIcon: ({ color, size }) => <Map color={color} size={size} />,
+                    tabBarIcon: ({ color, size }) => (
+                        <Map color={color} size={size} strokeWidth={1.75} />
+                    ),
                 }}
             />
             <Tabs.Screen
@@ -46,7 +50,7 @@ const TabsLayout = observer(() => {
                 options={{
                     title: 'History',
                     tabBarIcon: ({ color, size }) => (
-                        <History color={color} size={size} />
+                        <History color={color} size={size} strokeWidth={1.75} />
                     ),
                 }}
             />

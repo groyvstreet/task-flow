@@ -1,12 +1,11 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { createContext, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '@/src/shared/lib/constants';
-
-export type ColorMode = 'light' | 'dark';
+import { STORAGE_KEYS } from '@/src/shared/lib';
+import type { ThemeMode } from '@/src/shared/theme';
 
 export class ThemeStore {
-    mode: ColorMode = 'dark';
+    mode: ThemeMode = 'light';
 
     constructor() {
         makeAutoObservable(this);
@@ -22,14 +21,14 @@ export class ThemeStore {
     };
 
     toggle = async () => {
-        const next: ColorMode = this.mode === 'dark' ? 'light' : 'dark';
+        const next: ThemeMode = this.mode === 'dark' ? 'light' : 'dark';
         runInAction(() => {
             this.mode = next;
         });
         await AsyncStorage.setItem(STORAGE_KEYS.THEME, next);
     };
 
-    setMode = async (mode: ColorMode) => {
+    setMode = async (mode: ThemeMode) => {
         runInAction(() => {
             this.mode = mode;
         });

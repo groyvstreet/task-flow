@@ -1,12 +1,12 @@
 import { makeAutoObservable, runInAction } from 'mobx';
 import { createContext, useContext } from 'react';
 import NetInfo, { NetInfoState } from '@react-native-community/netinfo';
-import { syncService } from '@/src/shared/api/sync-service';
-import { registerAutoSyncTrigger } from '@/src/shared/api/auto-sync';
-import { taskStore } from '@/src/entities/task/model/store';
-import { actionStore } from '@/src/entities/action/model/store';
-import { attachmentStore } from '@/src/entities/attachment/model/store';
-import { toastStore } from '@/src/shared/ui/toastStore';
+import { syncService } from '../api/sync-service';
+import { registerAutoSyncTrigger } from '@/src/shared/api';
+import { taskStore } from '@/src/entities/task';
+import { actionStore } from '@/src/entities/action';
+import { attachmentStore } from '@/src/entities/attachment';
+import { toastStore } from '@/src/shared/ui';
 
 type SyncOptions = {
     quiet?: boolean;
@@ -32,17 +32,18 @@ export class SyncStore {
     lastError: string | null = null;
 
     private initialNetworkResolved = false;
-    private networkReady: Promise<boolean>;
-    private autoSyncTimer: ReturnType<typeof setTimeout> | null = null;
-    private pendingSync = false;
-    private pendingSyncQuiet = true;
+    /** Non-observable internals (excluded in makeAutoObservable) */
+    autoSyncTimer: ReturnType<typeof setTimeout> | null = null;
+    pendingSync = false;
+    pendingSyncQuiet = true;
+    networkReady: Promise<boolean> = Promise.resolve(false);
 
     constructor() {
         makeAutoObservable(this, {
-            networkReady: false,
             autoSyncTimer: false,
             pendingSync: false,
             pendingSyncQuiet: false,
+            networkReady: false,
         });
         this.networkReady = this.setupNetworkListener();
         registerAutoSyncTrigger(() => this.requestSync());
@@ -152,15 +153,26 @@ export class SyncStore {
                 .filter(t => t.syncStatus === 'pending')
                 .map(t => t.id);
             const deletedIds = [...new Set(taskStore.deletedTaskIds)];
-            const unsyncedActions = actionStore.unsyncedActions;
+            const deletedAttachmentIds = [...new Set(attachmentStore.deletedAttachmentIds)];
+            const historyClearPending = actionStore.historyClearPending;
+            const unsyncedActions = historyClearPending ? [] : actionStore.unsyncedActions;
             const hadLocalTasks = taskStore.tasks.length > 0;
             const hadWork =
                 pendingIds.length > 0 ||
                 deletedIds.length > 0 ||
+                deletedAttachmentIds.length > 0 ||
+                historyClearPending ||
                 unsyncedActions.length > 0;
 
             if (deletedIds.length > 0) {
                 await syncService.syncDeletedTasks(deletedIds);
+            }
+            if (deletedAttachmentIds.length > 0) {
+                await syncService.syncDeletedAttachments(deletedAttachmentIds);
+            }
+            if (historyClearPending) {
+                await syncService.clearActions();
+                await actionStore.markHistoryClearSynced();
             }
 
             await syncService.syncTasks(taskStore.tasks);
@@ -173,15 +185,40 @@ export class SyncStore {
                 syncService.pullActions(),
                 syncService.pullAttachments(),
             ]);
+
+            // Orphans left on server when a task was deleted before attachment sync existed
+            const orphanAttachmentIds = serverAttachments
+                .filter(
+                    a =>
+                        deletedIds.includes(a.taskId) ||
+                        deletedAttachmentIds.includes(a.id),
+                )
+                .map(a => a.id);
+            if (orphanAttachmentIds.length > 0) {
+                await syncService.syncDeletedAttachments(orphanAttachmentIds);
+            }
+
+            const attachmentsForMerge = serverAttachments.filter(
+                a => !orphanAttachmentIds.includes(a.id) && !deletedIds.includes(a.taskId),
+            );
+
             await taskStore.mergeTasksFromServer(serverTasks);
             await actionStore.mergeFromServer(serverActions);
-            await attachmentStore.mergeFromServer(serverAttachments);
+            await attachmentStore.mergeFromServer(attachmentsForMerge, taskStore.deletedTaskIds);
 
             const serverIdSet = new Set(serverTasks.map(t => t.id));
             const confirmedDeleted = deletedIds.filter(id => !serverIdSet.has(id));
             if (confirmedDeleted.length > 0) {
                 await taskStore.markDeletedSynced(confirmedDeleted);
             }
+
+            const confirmedDeletedAttachments = [
+                ...new Set([...deletedAttachmentIds, ...orphanAttachmentIds]),
+            ];
+            if (confirmedDeletedAttachments.length > 0) {
+                await attachmentStore.markDeletedSynced(confirmedDeletedAttachments);
+            }
+
             await taskStore.markSynced(pendingIds);
 
             for (const id of pendingIds) {
@@ -206,6 +243,12 @@ export class SyncStore {
             if (leftoverDeletes.length > 0) {
                 await syncService.syncDeletedTasks(leftoverDeletes);
                 await taskStore.markDeletedSynced(leftoverDeletes);
+            }
+
+            const leftoverAttachmentDeletes = [...new Set(attachmentStore.deletedAttachmentIds)];
+            if (leftoverAttachmentDeletes.length > 0) {
+                await syncService.syncDeletedAttachments(leftoverAttachmentDeletes);
+                await attachmentStore.markDeletedSynced(leftoverAttachmentDeletes);
             }
 
             const restored = !hadLocalTasks && serverTasks.length > 0;

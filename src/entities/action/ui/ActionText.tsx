@@ -1,7 +1,7 @@
 import { Action, ACTION_TYPE_LABELS } from '../model/types';
-import { formatDateTime } from '@/src/shared/lib/format';
+import { formatDateTime } from '@/src/shared/lib';
 import { StyleSheet, Text, View } from 'react-native';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors, Fonts } from '@/src/shared/theme';
 import { observer } from 'mobx-react-lite';
 
 type Props = {
@@ -13,13 +13,11 @@ export const ActionText = observer(({ action, showTaskTitle = false }: Props) =>
     const colors = useThemeColors();
 
     return (
-        <View style={[styles.row, { borderTopColor: colors.border }]}>
+        <View style={[styles.row, { borderBottomColor: colors.border }]}>
             <View style={styles.top}>
-                <View style={[styles.badge, { backgroundColor: colors.surfaceMuted }]}>
-                    <Text style={[styles.badgeText, { color: colors.textSecondary }]}>
-                        {ACTION_TYPE_LABELS[action.type]}
-                    </Text>
-                </View>
+                <Text style={[styles.badgeText, { color: colors.textMuted }]}>
+                    {ACTION_TYPE_LABELS[action.type]}
+                </Text>
                 <Text style={[styles.time, { color: colors.textMuted }]}>
                     {formatDateTime(action.timestamp)}
                 </Text>
@@ -27,7 +25,7 @@ export const ActionText = observer(({ action, showTaskTitle = false }: Props) =>
             {showTaskTitle && action.taskTitle ? (
                 <Text style={[styles.taskTitle, { color: colors.text }]}>{action.taskTitle}</Text>
             ) : null}
-            <Text style={[styles.description, { color: colors.textMuted }]}>
+            <Text style={[styles.description, { color: colors.textSecondary }]}>
                 {action.description}
             </Text>
         </View>
@@ -36,9 +34,9 @@ export const ActionText = observer(({ action, showTaskTitle = false }: Props) =>
 
 const styles = StyleSheet.create({
     row: {
-        paddingHorizontal: 14,
-        paddingVertical: 12,
-        borderTopWidth: StyleSheet.hairlineWidth,
+        paddingHorizontal: 16,
+        paddingVertical: 14,
+        borderBottomWidth: StyleSheet.hairlineWidth,
         gap: 4,
     },
     top: {
@@ -47,13 +45,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         gap: 8,
     },
-    badge: {
-        borderRadius: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 3,
+    badgeText: {
+        fontSize: 11,
+        fontFamily: Fonts.semibold,
+        textTransform: 'uppercase',
+        letterSpacing: 0.6,
     },
-    badgeText: { fontSize: 11, fontWeight: '700' },
-    time: { fontSize: 11 },
-    taskTitle: { fontSize: 14, fontWeight: '700' },
-    description: { fontSize: 13, lineHeight: 18 },
+    time: { fontSize: 11, fontFamily: Fonts.regular },
+    taskTitle: { fontSize: 15, fontFamily: Fonts.semibold, letterSpacing: -0.2 },
+    description: { fontSize: 13, fontFamily: Fonts.regular, lineHeight: 18 },
 });

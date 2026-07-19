@@ -1,9 +1,7 @@
 export { DateTimePicker } from './DateTimePicker';
 export { EmptyState } from './EmptyState';
-export { SyncStatusBadge } from './SyncStatusBadge';
-export { TaskStatusBadge } from './TaskStatusBadge';
 export { OptionPicker } from './OptionPicker';
 export { MapErrorBoundary } from './MapErrorBoundary';
 export { ToastHost } from './ToastHost';
 export { toastStore } from './toastStore';
-export { AttachmentViewer } from './AttachmentViewer';
+export { AttachmentViewer, type FileViewerItem } from './AttachmentViewer';

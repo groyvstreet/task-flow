@@ -12,11 +12,10 @@ import { useTaskAddingStore } from '../model/store';
 import { observer } from 'mobx-react-lite';
 import { DateTimePicker, OptionPicker, toastStore } from '@/src/shared/ui';
 import { Plus, X } from 'lucide-react-native';
-import { pickImage, pickDocument } from '@/src/features/attachment-picker';
-import { AttachmentList } from '@/src/entities/attachment';
+import { AttachmentList, pickImage, pickDocument } from '@/src/entities/attachment';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { TASK_STATUS_LABELS, TaskStatus } from '@/src/entities/task/model/types';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { TASK_STATUS_LABELS, type TaskStatus } from '@/src/entities/task';
+import { useThemeColors, Fonts } from '@/src/shared/theme';
 
 const STATUS_OPTIONS = (Object.keys(TASK_STATUS_LABELS) as TaskStatus[]).map(value => ({
     value,
@@ -49,6 +48,7 @@ export const TaskAdding = observer(() => {
         borderColor: colors.border,
         backgroundColor: colors.inputBg,
         color: colors.text,
+        fontFamily: Fonts.regular,
     };
 
     return (
@@ -59,7 +59,7 @@ export const TaskAdding = observer(() => {
                 onPress={store.openModal}
                 style={[styles.fab, { backgroundColor: colors.fab }]}
             >
-                <Plus size={26} color="#fff" />
+                <Plus size={24} color={colors.onAccent} strokeWidth={2} />
             </Pressable>
 
             <Modal
@@ -69,40 +69,36 @@ export const TaskAdding = observer(() => {
                 onRequestClose={store.closeModal}
             >
                 <SafeAreaView style={[styles.safe, { backgroundColor: colors.bg }]}>
-                    <View
-                        style={[
-                            styles.header,
-                            { backgroundColor: colors.surface, borderBottomColor: colors.border },
-                        ]}
-                    >
+                    <View style={styles.header}>
                         <View>
-                            <Text style={[styles.headerEyebrow, { color: colors.accent }]}>
-                                Field work
-                            </Text>
                             <Text style={[styles.headerTitle, { color: colors.text }]}>New task</Text>
+                            <Text style={[styles.headerSub, { color: colors.textMuted }]}>
+                                Add details and a place
+                            </Text>
                         </View>
                         <Pressable
                             onPress={store.closeModal}
                             style={[styles.closeBtn, { backgroundColor: colors.surfaceMuted }]}
                             accessibilityLabel="Close"
                         >
-                            <X size={20} color={colors.textSecondary} />
+                            <X size={20} color={colors.textSecondary} strokeWidth={1.75} />
                         </Pressable>
                     </View>
 
                     <ScrollView
                         contentContainerStyle={styles.content}
                         keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
                     >
                         <View style={styles.field}>
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>Title *</Text>
+                            <Text style={[styles.label, { color: colors.textMuted }]}>Title</Text>
                             <TextInput
                                 style={[
                                     styles.input,
                                     inputStyle,
                                     store.errors.title && { borderColor: colors.danger },
                                 ]}
-                                placeholder="e.g. Inspect HVAC unit"
+                                placeholder="What needs doing?"
                                 placeholderTextColor={colors.textMuted}
                                 value={store.title}
                                 onChangeText={store.setTitle}
@@ -115,8 +111,8 @@ export const TaskAdding = observer(() => {
                         </View>
 
                         <View style={styles.field}>
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>
-                                Description *
+                            <Text style={[styles.label, { color: colors.textMuted }]}>
+                                Description
                             </Text>
                             <TextInput
                                 style={[
@@ -125,7 +121,7 @@ export const TaskAdding = observer(() => {
                                     inputStyle,
                                     store.errors.description && { borderColor: colors.danger },
                                 ]}
-                                placeholder="What needs to be done on site?"
+                                placeholder="Notes for the site"
                                 placeholderTextColor={colors.textMuted}
                                 value={store.description}
                                 onChangeText={store.setDescription}
@@ -140,7 +136,7 @@ export const TaskAdding = observer(() => {
                         </View>
 
                         <DateTimePicker
-                            label="Due date & time *"
+                            label="Due"
                             value={store.dueDate}
                             onValueChange={store.setDueDate}
                             minimumDate={new Date()}
@@ -148,16 +144,14 @@ export const TaskAdding = observer(() => {
                         />
 
                         <View style={styles.field}>
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>
-                                Location address *
-                            </Text>
+                            <Text style={[styles.label, { color: colors.textMuted }]}>Address</Text>
                             <TextInput
                                 style={[
                                     styles.input,
                                     inputStyle,
                                     store.errors.location && { borderColor: colors.danger },
                                 ]}
-                                placeholder="Manual address"
+                                placeholder="Street, city…"
                                 placeholderTextColor={colors.textMuted}
                                 value={store.location.address}
                                 onChangeText={store.setLocationAddress}
@@ -171,12 +165,12 @@ export const TaskAdding = observer(() => {
 
                         <View style={styles.row}>
                             <View style={[styles.field, { flex: 1 }]}>
-                                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                                <Text style={[styles.label, { color: colors.textMuted }]}>
                                     Latitude
                                 </Text>
                                 <TextInput
                                     style={[styles.input, inputStyle]}
-                                    placeholder="Auto from address"
+                                    placeholder="Auto"
                                     placeholderTextColor={colors.textMuted}
                                     keyboardType="numeric"
                                     value={store.location.latitude?.toString() ?? ''}
@@ -189,12 +183,12 @@ export const TaskAdding = observer(() => {
                                 />
                             </View>
                             <View style={[styles.field, { flex: 1 }]}>
-                                <Text style={[styles.label, { color: colors.textSecondary }]}>
+                                <Text style={[styles.label, { color: colors.textMuted }]}>
                                     Longitude
                                 </Text>
                                 <TextInput
                                     style={[styles.input, inputStyle]}
-                                    placeholder="Auto from address"
+                                    placeholder="Auto"
                                     placeholderTextColor={colors.textMuted}
                                     keyboardType="numeric"
                                     value={store.location.longitude?.toString() ?? ''}
@@ -229,36 +223,34 @@ export const TaskAdding = observer(() => {
                         />
 
                         <View style={styles.field}>
-                            <Text style={[styles.label, { color: colors.textSecondary }]}>
+                            <Text style={[styles.label, { color: colors.textMuted }]}>
                                 Attachments
                             </Text>
                             <View style={styles.row}>
                                 <Pressable
                                     style={[
                                         styles.secondaryBtn,
-                                        {
-                                            borderColor: colors.border,
-                                            backgroundColor: colors.surface,
-                                        },
+                                        { backgroundColor: colors.surfaceMuted },
                                     ]}
                                     onPress={handlePickImage}
                                 >
-                                    <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>
-                                        Add image
+                                    <Text
+                                        style={[styles.secondaryBtnText, { color: colors.text }]}
+                                    >
+                                        Image
                                     </Text>
                                 </Pressable>
                                 <Pressable
                                     style={[
                                         styles.secondaryBtn,
-                                        {
-                                            borderColor: colors.border,
-                                            backgroundColor: colors.surface,
-                                        },
+                                        { backgroundColor: colors.surfaceMuted },
                                     ]}
                                     onPress={handlePickDocument}
                                 >
-                                    <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>
-                                        Add file
+                                    <Text
+                                        style={[styles.secondaryBtnText, { color: colors.text }]}
+                                    >
+                                        File
                                     </Text>
                                 </Pressable>
                             </View>
@@ -276,12 +268,7 @@ export const TaskAdding = observer(() => {
                         ) : null}
                     </ScrollView>
 
-                    <View
-                        style={[
-                            styles.footer,
-                            { borderTopColor: colors.border, backgroundColor: colors.surface },
-                        ]}
-                    >
+                    <View style={[styles.footer, { backgroundColor: colors.bg }]}>
                         <Pressable
                             style={[
                                 styles.primaryBtn,
@@ -293,9 +280,11 @@ export const TaskAdding = observer(() => {
                             accessibilityLabel="Create task"
                         >
                             {store.isSubmitting ? (
-                                <ActivityIndicator color="#fff" />
+                                <ActivityIndicator color={colors.onAccent} />
                             ) : (
-                                <Text style={styles.primaryBtnText}>Create Task</Text>
+                                <Text style={[styles.primaryBtnText, { color: colors.onAccent }]}>
+                                    Create
+                                </Text>
                             )}
                         </Pressable>
                     </View>
@@ -309,75 +298,71 @@ const styles = StyleSheet.create({
     fab: {
         position: 'absolute',
         right: 20,
-        bottom: 24,
-        width: 58,
-        height: 58,
-        borderRadius: 29,
+        bottom: 22,
+        width: 56,
+        height: 56,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
-        elevation: 6,
-        shadowColor: '#0f172a',
-        shadowOpacity: 0.25,
-        shadowRadius: 8,
-        shadowOffset: { width: 0, height: 4 },
         zIndex: 20,
     },
     safe: { flex: 1 },
     header: {
-        paddingHorizontal: 20,
+        paddingHorizontal: 24,
         paddingTop: 8,
-        paddingBottom: 12,
+        paddingBottom: 16,
         flexDirection: 'row',
-        alignItems: 'center',
+        alignItems: 'flex-start',
         justifyContent: 'space-between',
-        borderBottomWidth: StyleSheet.hairlineWidth,
     },
-    headerEyebrow: {
-        fontSize: 12,
-        fontWeight: '600',
-        textTransform: 'uppercase',
-        letterSpacing: 0.6,
+    headerTitle: {
+        fontSize: 28,
+        fontFamily: Fonts.bold,
+        letterSpacing: -0.6,
     },
-    headerTitle: { fontSize: 24, fontWeight: '700', marginTop: 2 },
+    headerSub: {
+        fontSize: 14,
+        fontFamily: Fonts.regular,
+        marginTop: 4,
+    },
     closeBtn: {
         width: 40,
         height: 40,
-        borderRadius: 20,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    content: { padding: 20, gap: 16, paddingBottom: 32 },
-    field: { gap: 6 },
-    label: { fontSize: 13, fontWeight: '600' },
+    content: { paddingHorizontal: 24, gap: 18, paddingBottom: 32 },
+    field: { gap: 8 },
+    label: { fontSize: 12, fontFamily: Fonts.medium, letterSpacing: 0.2 },
     input: {
-        minHeight: 48,
-        borderWidth: 1,
-        borderRadius: 12,
+        minHeight: 50,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: 14,
         paddingHorizontal: 14,
         fontSize: 16,
     },
-    textarea: { minHeight: 110, paddingTop: 12, paddingBottom: 12 },
-    error: { fontSize: 12 },
+    textarea: { minHeight: 110, paddingTop: 14, paddingBottom: 14 },
+    error: { fontSize: 12, fontFamily: Fonts.regular },
     row: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
     secondaryBtn: {
-        minHeight: 44,
-        paddingHorizontal: 14,
-        borderRadius: 10,
-        borderWidth: 1,
+        minHeight: 42,
+        paddingHorizontal: 16,
+        borderRadius: 12,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    secondaryBtnText: { fontSize: 14, fontWeight: '600' },
+    secondaryBtnText: { fontSize: 14, fontFamily: Fonts.medium },
     footer: {
-        padding: 16,
-        borderTopWidth: StyleSheet.hairlineWidth,
+        paddingHorizontal: 24,
+        paddingVertical: 16,
     },
     primaryBtn: {
         minHeight: 52,
-        borderRadius: 14,
+        borderRadius: 16,
         alignItems: 'center',
         justifyContent: 'center',
     },
     primaryBtnDisabled: { opacity: 0.7 },
-    primaryBtnText: { color: '#fff', fontSize: 16, fontWeight: '700' },
+    primaryBtnText: { fontSize: 16, fontFamily: Fonts.semibold },
 });

@@ -71,7 +71,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     retryText: {
-        color: '#0f766e',
+        color: '#171717',
         fontWeight: '600',
     },
 });

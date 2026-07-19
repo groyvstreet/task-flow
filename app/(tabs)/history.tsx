@@ -1,5 +1,5 @@
-import { HistoryScreen } from '@/src/screens/history';
+import { HistoryPage } from '@/src/pages/history';
 
-export default function HistoryTab() {
-    return <HistoryScreen />;
+export default function HistoryRoute() {
+    return <HistoryPage />;
 }

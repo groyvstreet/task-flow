@@ -12,7 +12,7 @@ import RNDateTimePicker, {
 } from '@react-native-community/datetimepicker';
 import { CalendarClock } from 'lucide-react-native';
 import { format } from 'date-fns';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors } from '@/src/shared/theme';
 import { observer } from 'mobx-react-lite';
 
 type Props = {
@@ -89,7 +89,7 @@ export const DateTimePicker = observer(({
                     },
                 ]}
             >
-                <CalendarClock size={18} color={colors.accent} />
+                <CalendarClock size={18} color={colors.textMuted} strokeWidth={1.75} />
                 <Text style={[styles.triggerText, { color: colors.text }]}>
                     {format(value, 'dd MMM yyyy, HH:mm')}
                 </Text>
@@ -143,9 +143,9 @@ const styles = StyleSheet.create({
     wrap: { gap: 6 },
     label: { fontSize: 13, fontWeight: '600' },
     trigger: {
-        minHeight: 48,
-        borderWidth: 1,
-        borderRadius: 12,
+        minHeight: 50,
+        borderWidth: StyleSheet.hairlineWidth,
+        borderRadius: 14,
         paddingHorizontal: 14,
         flexDirection: 'row',
         alignItems: 'center',

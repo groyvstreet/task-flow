@@ -3,14 +3,16 @@ import { useTaskStore } from '../model/store';
 import { TaskCard } from './TaskCard';
 import { observer } from 'mobx-react-lite';
 import { EmptyState } from '@/src/shared/ui';
+import { useThemeColors } from '@/src/shared/theme';
 
 export const TaskList = observer(() => {
     const taskStore = useTaskStore();
+    const colors = useThemeColors();
 
     if (taskStore.isLoading) {
         return (
             <View style={styles.center}>
-                <ActivityIndicator size="large" color="#0f766e" />
+                <ActivityIndicator size="large" color={colors.accent} />
             </View>
         );
     }
@@ -37,8 +39,9 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     content: {
-        padding: 16,
-        gap: 12,
+        paddingHorizontal: 16,
+        paddingTop: 4,
+        gap: 10,
         paddingBottom: 120,
     },
 });

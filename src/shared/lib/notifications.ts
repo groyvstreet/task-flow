@@ -114,6 +114,14 @@ export const cancelTaskNotification = async (notificationId?: string) => {
     }
 };
 
+export const cancelAllScheduledNotifications = async () => {
+    try {
+        await Notifications.cancelAllScheduledNotificationsAsync();
+    } catch (error) {
+        console.warn('cancelAllScheduledNotifications failed', error);
+    }
+};
+
 export const scheduleDemoNotification = async (
     taskId: string,
     title: string,

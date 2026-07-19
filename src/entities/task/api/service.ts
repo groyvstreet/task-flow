@@ -1,5 +1,5 @@
 import { Task } from '../model/types';
-import { firebaseClient } from '@/src/shared/api/client';
+import { firebaseClient } from '@/src/shared/api';
 import { normalizeTaskLocation } from '../lib/location';
 
 export class TaskService {

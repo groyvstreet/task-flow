@@ -1,7 +1,7 @@
 import { Attachment } from '../model/types';
 import { AttachmentItem } from './AttachmentItem';
 import { StyleSheet, Text, View } from 'react-native';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors } from '@/src/shared/theme';
 import { observer } from 'mobx-react-lite';
 
 type Props = {

@@ -1,16 +1,16 @@
-import { taskStore, TaskStore } from '@/src/entities/task';
-import { Task } from '@/src/entities/task/model/types';
-import { attachmentStore } from '@/src/entities/attachment/model/store';
-import { Attachment } from '@/src/entities/attachment/model/types';
+import {
+    taskStore,
+    TaskStore,
+    type Task,
+    validateTaskForm,
+    hasValidationErrors,
+    LocationFormHelper,
+    type ValidationErrors,
+} from '@/src/entities/task';
+import { attachmentStore, type Attachment } from '@/src/entities/attachment';
 import { makeAutoObservable } from 'mobx';
 import { createContext, useContext } from 'react';
 import { randomUUID } from 'expo-crypto';
-import {
-    validateTaskForm,
-    ValidationErrors,
-    hasValidationErrors,
-} from '@/src/shared/lib/validation';
-import { LocationFormHelper } from '@/src/shared/lib/LocationFormHelper';
 
 export class TaskUpdatingStore {
     private taskStore: TaskStore;

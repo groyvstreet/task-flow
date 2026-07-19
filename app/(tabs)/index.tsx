@@ -1,5 +1,5 @@
-import { TasksScreen } from '@/src/screens/tasks';
+import { TasksPage } from '@/src/pages/tasks';
 
-export default function TasksTab() {
-    return <TasksScreen />;
+export default function TasksRoute() {
+    return <TasksPage />;
 }

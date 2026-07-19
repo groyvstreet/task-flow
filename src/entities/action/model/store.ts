@@ -2,10 +2,10 @@ import { createContext, useContext } from 'react';
 import { Action, ActionType } from './types';
 import { makeAutoObservable, runInAction } from 'mobx';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '@/src/shared/lib/constants';
+import { STORAGE_KEYS } from '@/src/shared/lib';
 import { randomUUID } from 'expo-crypto';
 import { ActionService } from '../api/service';
-import { requestAutoSync } from '@/src/shared/api/auto-sync';
+import { requestAutoSync } from '@/src/shared/api';
 
 type LogActionParams = {
     taskId: string;
@@ -19,6 +19,7 @@ export class ActionStore {
     private actionService: ActionService;
 
     actions: Action[] = [];
+    historyClearPending = false;
     isLoading = false;
 
     constructor(actionService: ActionService) {
@@ -28,18 +29,30 @@ export class ActionStore {
 
     init = async () => {
         this.isLoading = true;
-        const data = await AsyncStorage.getItem(STORAGE_KEYS.ACTIONS);
+        const [data, clearPending] = await Promise.all([
+            AsyncStorage.getItem(STORAGE_KEYS.ACTIONS),
+            AsyncStorage.getItem(STORAGE_KEYS.HISTORY_CLEAR_PENDING),
+        ]);
 
         runInAction(() => {
             if (data) {
                 this.actions = JSON.parse(data);
             }
+            this.historyClearPending = clearPending === '1';
             this.isLoading = false;
         });
     };
 
     private saveActions = async () => {
         await AsyncStorage.setItem(STORAGE_KEYS.ACTIONS, JSON.stringify(this.actions));
+    };
+
+    private saveClearPending = async () => {
+        if (this.historyClearPending) {
+            await AsyncStorage.setItem(STORAGE_KEYS.HISTORY_CLEAR_PENDING, '1');
+        } else {
+            await AsyncStorage.removeItem(STORAGE_KEYS.HISTORY_CLEAR_PENDING);
+        }
     };
 
     logAction = async (params: LogActionParams) => {
@@ -73,6 +86,10 @@ export class ActionStore {
     };
 
     mergeFromServer = async (serverActions: Action[]) => {
+        if (this.historyClearPending) {
+            return;
+        }
+
         const unsynced = this.actions.filter(a => !a.synced);
         const unsyncedIds = new Set(unsynced.map(a => a.id));
         const fromServer = serverActions
@@ -96,6 +113,23 @@ export class ActionStore {
     get sortedActions(): Action[] {
         return [...this.actions].sort((a, b) => b.timestamp - a.timestamp);
     }
+
+    clearAll = async () => {
+        runInAction(() => {
+            this.actions = [];
+            this.historyClearPending = true;
+        });
+        await this.saveActions();
+        await this.saveClearPending();
+        requestAutoSync();
+    };
+
+    markHistoryClearSynced = async () => {
+        runInAction(() => {
+            this.historyClearPending = false;
+        });
+        await this.saveClearPending();
+    };
 }
 
 export const actionStore = new ActionStore(new ActionService());

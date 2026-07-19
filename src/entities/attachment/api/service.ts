@@ -1,5 +1,5 @@
 import { Attachment } from '../model/types';
-import { firebaseClient } from '@/src/shared/api/client';
+import { firebaseClient } from '@/src/shared/api';
 
 export class AttachmentService {
     getAttachments = async (): Promise<Attachment[]> => {

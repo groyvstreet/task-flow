@@ -1,9 +1,5 @@
-import { TaskScreen } from "@/src/screens/task";
+import { TaskDetailsPage } from '@/src/pages/task-details';
 
-const Task = () => {
-    return (
-        <TaskScreen />
-    );
-};
-
-export default Task;
+export default function TaskDetailsRoute() {
+    return <TaskDetailsPage />;
+}

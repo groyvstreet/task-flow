@@ -12,15 +12,23 @@ import {
     Text,
     View,
 } from 'react-native';
-import { Attachment } from '@/src/entities/attachment/model/types';
 import { X } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as IntentLauncher from 'expo-intent-launcher';
 
+/** Structural viewer payload — no entity dependency */
+export type FileViewerItem = {
+    id: string;
+    uri: string;
+    name: string;
+    mimeType: string;
+    type: 'image' | 'pdf' | 'other';
+};
+
 type Props = {
-    attachment: Attachment | null;
+    item: FileViewerItem | null;
     onClose: () => void;
 };
 
@@ -51,7 +59,7 @@ const openLocalFile = async (uri: string, mimeType: string, name: string) => {
     await Linking.openURL(uri);
 };
 
-export const AttachmentViewer = ({ attachment, onClose }: Props) => {
+export const AttachmentViewer = ({ item, onClose }: Props) => {
     const insets = useSafeAreaInsets();
     const [loading, setLoading] = useState(true);
     const [failed, setFailed] = useState(false);
@@ -61,16 +69,16 @@ export const AttachmentViewer = ({ attachment, onClose }: Props) => {
         setLoading(true);
         setFailed(false);
         setOpening(false);
-    }, [attachment?.id]);
+    }, [item?.id]);
 
-    if (!attachment) return null;
+    if (!item) return null;
 
-    const isImage = attachment.type === 'image';
+    const isImage = item.type === 'image';
 
     const openExternally = async () => {
         setOpening(true);
         try {
-            await openLocalFile(attachment.uri, attachment.mimeType, attachment.name);
+            await openLocalFile(item.uri, item.mimeType, item.name);
         } catch {
             Alert.alert(
                 'Cannot open file',
@@ -91,7 +99,7 @@ export const AttachmentViewer = ({ attachment, onClose }: Props) => {
             >
                 <View style={styles.header}>
                     <Text style={styles.title} numberOfLines={1}>
-                        {attachment.name}
+                        {item.name}
                     </Text>
                     <Pressable style={styles.close} onPress={onClose} accessibilityLabel="Close viewer">
                         <X size={20} color="#fff" />
@@ -118,7 +126,7 @@ export const AttachmentViewer = ({ attachment, onClose }: Props) => {
                             </View>
                         ) : (
                             <Image
-                                source={{ uri: attachment.uri }}
+                                source={{ uri: item.uri }}
                                 style={styles.image}
                                 resizeMode="contain"
                                 onLoadStart={() => {
@@ -136,9 +144,9 @@ export const AttachmentViewer = ({ attachment, onClose }: Props) => {
                 ) : (
                     <View style={styles.fallback}>
                         <Text style={styles.fallbackText}>
-                            {attachment.type === 'pdf' ? 'PDF document' : 'File attachment'}
+                            {item.type === 'pdf' ? 'PDF document' : 'File attachment'}
                         </Text>
-                        <Text style={styles.fallbackSub}>{attachment.mimeType}</Text>
+                        <Text style={styles.fallbackSub}>{item.mimeType}</Text>
                         <Pressable
                             style={styles.fallbackBtn}
                             onPress={openExternally}
@@ -219,7 +227,7 @@ const styles = StyleSheet.create({
         minWidth: 140,
         paddingHorizontal: 20,
         borderRadius: 12,
-        backgroundColor: '#0f766e',
+        backgroundColor: '#171717',
         alignItems: 'center',
         justifyContent: 'center',
     },

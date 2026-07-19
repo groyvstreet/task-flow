@@ -1,8 +1,7 @@
 import { observer } from 'mobx-react-lite';
-import { useTaskStore } from '@/src/entities/task';
-import { TaskSortField } from '@/src/entities/task/model/types';
+import { useTaskStore, type TaskSortField } from '@/src/entities/task';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors, Fonts } from '@/src/shared/theme';
 
 const SORT_OPTIONS: { field: TaskSortField; label: string }[] = [
     { field: 'creationDate', label: 'Added' },
@@ -15,8 +14,7 @@ export const TaskSorting = observer(() => {
     const colors = useThemeColors();
 
     return (
-        <View style={[styles.wrap, { backgroundColor: colors.bg }]}>
-            <Text style={[styles.label, { color: colors.textMuted }]}>Sort</Text>
+        <View style={styles.wrap}>
             <View style={styles.row}>
                 {SORT_OPTIONS.map(opt => {
                     const active = taskStore.sortField === opt.field;
@@ -26,8 +24,7 @@ export const TaskSorting = observer(() => {
                             style={[
                                 styles.chip,
                                 {
-                                    borderColor: active ? colors.accent : colors.border,
-                                    backgroundColor: active ? colors.accent : colors.surface,
+                                    backgroundColor: active ? colors.accent : 'transparent',
                                 },
                             ]}
                             onPress={() => taskStore.setSortField(opt.field)}
@@ -35,7 +32,7 @@ export const TaskSorting = observer(() => {
                             <Text
                                 style={[
                                     styles.chipText,
-                                    { color: active ? '#fff' : colors.textSecondary },
+                                    { color: active ? colors.onAccent : colors.textMuted },
                                 ]}
                             >
                                 {opt.label}
@@ -50,21 +47,14 @@ export const TaskSorting = observer(() => {
 });
 
 const styles = StyleSheet.create({
-    wrap: { paddingHorizontal: 16, paddingVertical: 10, gap: 8 },
-    label: {
-        fontSize: 12,
-        fontWeight: '700',
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
-    },
-    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+    wrap: { paddingHorizontal: 20, paddingVertical: 4, paddingBottom: 8 },
+    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
     chip: {
-        minHeight: 36,
+        minHeight: 34,
         paddingHorizontal: 14,
-        borderRadius: 999,
-        borderWidth: 1,
+        borderRadius: 10,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    chipText: { fontSize: 13, fontWeight: '600' },
+    chipText: { fontSize: 13, fontFamily: Fonts.medium },
 });

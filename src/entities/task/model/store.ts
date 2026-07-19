@@ -3,16 +3,17 @@ import { Task, TaskSortField, STATUS_ORDER } from './types';
 import { makeAutoObservable, runInAction } from 'mobx';
 import { TaskService } from '../api/service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { STORAGE_KEYS } from '@/src/shared/lib/constants';
-import { actionStore } from '@/src/entities/action/model/store';
-import { attachmentStore } from '@/src/entities/attachment/model/store';
+import { STORAGE_KEYS } from '@/src/shared/lib';
+import { actionStore } from '@/src/entities/action/@x/task';
+import { attachmentStore } from '@/src/entities/attachment/@x/task';
 import {
     canScheduleDueReminder,
+    cancelAllScheduledNotifications,
     cancelTaskNotification,
     NOTIFICATION_TOO_SOON_MESSAGE,
     scheduleTaskNotification,
-} from '@/src/shared/lib/notifications';
-import { requestAutoSync } from '@/src/shared/api/auto-sync';
+} from '@/src/shared/lib';
+import { requestAutoSync } from '@/src/shared/api';
 import { mergeTaskLocation, normalizeTaskLocation } from '../lib/location';
 
 export type AddTaskResult = {
@@ -264,6 +265,8 @@ export class TaskStore {
         await this.saveTasks();
         await this.saveDeletedIds();
 
+        await attachmentStore.removeByTaskId(task.id);
+
         await actionStore.logAction({
             taskId: task.id,
             taskTitle: task.title,
@@ -271,11 +274,19 @@ export class TaskStore {
             description: `Task "${task.title}" deleted`,
         });
 
-        const taskAttachments = attachmentStore.getByTaskId(task.id);
-        for (const att of taskAttachments) {
-            await attachmentStore.removeAttachment(att, false);
-        }
+        requestAutoSync();
+    };
 
+    clearAll = async () => {
+        const ids = this.tasks.map(t => t.id);
+        await cancelAllScheduledNotifications();
+
+        runInAction(() => {
+            this.deletedTaskIds = [...new Set([...this.deletedTaskIds, ...ids])];
+            this.tasks = [];
+        });
+        await this.saveTasks();
+        await this.saveDeletedIds();
         requestAutoSync();
     };
 

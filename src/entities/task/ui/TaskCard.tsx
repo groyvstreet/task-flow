@@ -2,21 +2,15 @@ import { router } from 'expo-router';
 import { Task } from '../model/types';
 import { useTaskStore } from '../model/store';
 import { observer } from 'mobx-react-lite';
-import { formatDateTime } from '@/src/shared/lib/format';
-import { TaskStatusBadge, SyncStatusBadge } from '@/src/shared/ui';
+import { formatDateTime } from '@/src/shared/lib';
+import { TaskStatusBadge } from './TaskStatusBadge';
+import { SyncStatusBadge } from './SyncStatusBadge';
 import { MapPin, Trash2, AlertTriangle } from 'lucide-react-native';
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useThemeColors } from '@/src/shared/theme/useThemeColors';
+import { useThemeColors, Fonts } from '@/src/shared/theme';
 
 type Props = { task: Task };
-
-const STATUS_BORDER: Record<Task['status'], string> = {
-    new: '#0284c7',
-    'in-progress': '#ea580c',
-    completed: '#16a34a',
-    cancelled: '#94a3b8',
-};
 
 export const TaskCard = observer(({ task }: Props) => {
     const taskStore = useTaskStore();
@@ -30,14 +24,7 @@ export const TaskCard = observer(({ task }: Props) => {
 
     return (
         <Pressable
-            style={[
-                styles.card,
-                {
-                    borderLeftColor: STATUS_BORDER[task.status],
-                    backgroundColor: colors.surface,
-                    borderColor: colors.border,
-                },
-            ]}
+            style={[styles.card, { backgroundColor: colors.surface }]}
             onPress={() => router.push(`/${task.id}`)}
             accessibilityRole="button"
             accessibilityLabel={`Open task ${task.title}`}
@@ -49,42 +36,45 @@ export const TaskCard = observer(({ task }: Props) => {
                 <TaskStatusBadge status={task.status} />
             </View>
 
-            <Text style={[styles.description, { color: colors.textMuted }]} numberOfLines={2}>
-                {task.description}
-            </Text>
+            {task.description.trim() ? (
+                <Text style={[styles.description, { color: colors.textMuted }]} numberOfLines={2}>
+                    {task.description}
+                </Text>
+            ) : null}
 
             <Text style={[styles.meta, { color: colors.textSecondary }]}>
                 Due {formatDateTime(task.dueDate)}
             </Text>
 
             <View style={styles.locationRow}>
-                <MapPin size={14} color={colors.textMuted} />
+                <MapPin size={14} color={colors.textMuted} strokeWidth={1.75} />
                 <Text style={[styles.location, { color: colors.textMuted }]} numberOfLines={1}>
                     {task.location.address}
                 </Text>
             </View>
 
-            <View style={styles.footer}>
+            <View style={[styles.footer, { borderTopColor: colors.border }]}>
                 <SyncStatusBadge status={task.syncStatus} />
                 <Pressable
                     onPress={e => {
                         e.stopPropagation?.();
                         setShowDeleteDialog(true);
                     }}
-                    style={[styles.deleteBtn, { backgroundColor: colors.dangerBg }]}
+                    style={styles.deleteBtn}
                     accessibilityLabel={`Delete ${task.title}`}
+                    hitSlop={8}
                 >
-                    <Trash2 size={16} color={colors.danger} />
+                    <Trash2 size={16} color={colors.textMuted} strokeWidth={1.75} />
                 </Pressable>
             </View>
 
             <Modal transparent visible={showDeleteDialog} animationType="fade">
                 <View style={[styles.dialogBackdrop, { backgroundColor: colors.overlay }]}>
                     <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
-                        <AlertTriangle size={28} color={colors.danger} />
+                        <AlertTriangle size={24} color={colors.danger} strokeWidth={1.75} />
                         <Text style={[styles.dialogTitle, { color: colors.text }]}>Delete task?</Text>
                         <Text style={[styles.dialogBody, { color: colors.textMuted }]}>
-                            “{task.title}” will be removed from this device and queued for sync delete.
+                            “{task.title}” will be removed and queued for sync.
                         </Text>
                         <View style={styles.dialogActions}>
                             <Pressable
@@ -112,27 +102,40 @@ export const TaskCard = observer(({ task }: Props) => {
 const styles = StyleSheet.create({
     card: {
         borderRadius: 16,
-        padding: 16,
+        padding: 18,
         gap: 8,
-        borderLeftWidth: 4,
-        borderWidth: 1,
     },
-    topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
-    title: { flex: 1, fontSize: 17, fontWeight: '700' },
-    description: { fontSize: 14, lineHeight: 20 },
-    meta: { fontSize: 13, fontWeight: '600' },
+    topRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+    title: {
+        flex: 1,
+        fontSize: 17,
+        fontFamily: Fonts.semibold,
+        letterSpacing: -0.3,
+        lineHeight: 22,
+    },
+    description: {
+        fontSize: 14,
+        fontFamily: Fonts.regular,
+        lineHeight: 20,
+    },
+    meta: {
+        fontSize: 13,
+        fontFamily: Fonts.medium,
+    },
     locationRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-    location: { flex: 1, fontSize: 13 },
+    location: { flex: 1, fontSize: 13, fontFamily: Fonts.regular },
     footer: {
-        marginTop: 4,
+        marginTop: 6,
+        paddingTop: 12,
+        borderTopWidth: StyleSheet.hairlineWidth,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
     },
     deleteBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         alignItems: 'center',
         justifyContent: 'center',
     },
@@ -144,28 +147,33 @@ const styles = StyleSheet.create({
     },
     dialog: {
         width: '100%',
-        borderRadius: 18,
-        padding: 20,
+        borderRadius: 20,
+        padding: 24,
         gap: 10,
         alignItems: 'center',
     },
-    dialogTitle: { fontSize: 18, fontWeight: '700' },
-    dialogBody: { fontSize: 14, textAlign: 'center', lineHeight: 20 },
-    dialogActions: { flexDirection: 'row', gap: 10, marginTop: 8, width: '100%' },
+    dialogTitle: { fontSize: 18, fontFamily: Fonts.semibold },
+    dialogBody: {
+        fontSize: 14,
+        fontFamily: Fonts.regular,
+        textAlign: 'center',
+        lineHeight: 20,
+    },
+    dialogActions: { flexDirection: 'row', gap: 10, marginTop: 10, width: '100%' },
     dialogCancel: {
         flex: 1,
-        minHeight: 46,
-        borderRadius: 12,
+        minHeight: 48,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    dialogCancelText: { fontWeight: '600' },
+    dialogCancelText: { fontFamily: Fonts.medium },
     dialogDelete: {
         flex: 1,
-        minHeight: 46,
-        borderRadius: 12,
+        minHeight: 48,
+        borderRadius: 14,
         alignItems: 'center',
         justifyContent: 'center',
     },
-    dialogDeleteText: { fontWeight: '700', color: '#fff' },
+    dialogDeleteText: { fontFamily: Fonts.semibold, color: '#fff' },
 });
