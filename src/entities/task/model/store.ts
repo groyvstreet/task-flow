@@ -1,7 +1,6 @@
 import { createContext, useContext } from 'react';
 import { Task, TaskSortField, STATUS_ORDER } from './types';
 import { makeAutoObservable, runInAction } from 'mobx';
-import { TaskService } from '../api/service';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/shared/lib';
 import { actionStore } from '@/src/entities/action/@x/task';
@@ -21,16 +20,13 @@ export type AddTaskResult = {
 };
 
 export class TaskStore {
-    private taskService: TaskService;
-
     tasks: Task[] = [];
     deletedTaskIds: string[] = [];
     isLoading = false;
     sortField: TaskSortField = 'creationDate';
     sortAscending = false;
 
-    constructor(taskService: TaskService) {
-        this.taskService = taskService;
+    constructor() {
         makeAutoObservable(this);
     }
 
@@ -391,7 +387,7 @@ export class TaskStore {
     }
 }
 
-export const taskStore = new TaskStore(new TaskService());
+export const taskStore = new TaskStore();
 
 const taskContext = createContext(taskStore);
 

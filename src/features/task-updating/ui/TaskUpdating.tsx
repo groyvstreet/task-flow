@@ -1,26 +1,30 @@
 import { useTaskUpdatingStore } from '../model/store';
 import { observer } from 'mobx-react-lite';
-import { DateTimePicker, OptionPicker, toastStore } from '@/src/shared/ui';
+import {
+    Button,
+    ConfirmDialog,
+    DateTimePicker,
+    IconButton,
+    LocationFields,
+    OptionPicker,
+    TextField,
+    toastStore,
+} from '@/src/shared/ui';
 import { useEffect, useState } from 'react';
 import { AttachmentList, pickImage, pickDocument } from '@/src/entities/attachment';
 import { ActionList } from '@/src/entities/action';
-import { formatDateTime, DEMO_NOTIFICATION_DELAY_SECONDS, scheduleDemoNotification } from '@/src/shared/lib';
+import {
+    formatDateTime,
+    DEMO_NOTIFICATION_DELAY_SECONDS,
+    scheduleDemoNotification,
+} from '@/src/shared/lib';
 import {
     TASK_STATUS_LABELS,
     TaskStatusBadge,
     type TaskStatus,
 } from '@/src/entities/task';
 import { router } from 'expo-router';
-import {
-    ActivityIndicator,
-    Modal,
-    Pressable,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    View,
-} from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ArrowLeft, Bell, MapPin, Pencil, Trash2 } from 'lucide-react-native';
 import { useThemeColors, Fonts } from '@/src/shared/theme';
 
@@ -112,13 +116,9 @@ export const TaskUpdating = observer(({ id }: Props) => {
         return (
             <View style={[styles.wrap, { backgroundColor: colors.bg }]}>
                 <View style={styles.topBar}>
-                    <Pressable
-                        style={[styles.iconBtn, { backgroundColor: colors.surfaceMuted }]}
-                        onPress={() => router.back()}
-                        accessibilityLabel="Back"
-                    >
+                    <IconButton onPress={() => router.back()} accessibilityLabel="Back">
                         <ArrowLeft size={20} color={colors.text} />
-                    </Pressable>
+                    </IconButton>
                     <Text style={[styles.topTitle, { color: colors.text }]}>Task details</Text>
                     <View style={{ width: 40 }} />
                 </View>
@@ -139,10 +139,7 @@ export const TaskUpdating = observer(({ id }: Props) => {
                     </Text>
 
                     <View
-                        style={[
-                            styles.locationBox,
-                            { backgroundColor: colors.surfaceMuted },
-                        ]}
+                        style={[styles.locationBox, { backgroundColor: colors.surfaceMuted }]}
                     >
                         <MapPin size={16} color={colors.textMuted} strokeWidth={1.75} />
                         <View style={{ flex: 1 }}>
@@ -192,33 +189,26 @@ export const TaskUpdating = observer(({ id }: Props) => {
                     </View>
 
                     <View style={styles.actions}>
-                        <Pressable
-                            style={[styles.primaryBtn, { backgroundColor: colors.fab }]}
+                        <Button
                             onPress={store.startEditing}
+                            icon={<Pencil size={16} color={colors.onAccent} strokeWidth={1.75} />}
                         >
-                            <Pencil size={16} color={colors.onAccent} strokeWidth={1.75} />
-                            <Text style={[styles.primaryBtnText, { color: colors.onAccent }]}>
-                                Edit
-                            </Text>
-                        </Pressable>
-                        <Pressable
-                            style={[
-                                styles.secondaryBtn,
-                                { backgroundColor: colors.surfaceMuted },
-                            ]}
+                            Edit
+                        </Button>
+                        <Button
+                            variant="secondary"
                             onPress={handleDemoNotification}
+                            icon={<Bell size={16} color={colors.text} strokeWidth={1.75} />}
                         >
-                            <Bell size={16} color={colors.text} strokeWidth={1.75} />
-                            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-                                Demo notify
-                            </Text>
-                        </Pressable>
-                        <Pressable
-                            style={[styles.dangerBtn, { backgroundColor: colors.dangerBg }]}
+                            Demo notify
+                        </Button>
+                        <Button
+                            variant="dangerSoft"
                             onPress={() => setShowDeleteDialog(true)}
-                        >
-                            <Trash2 size={16} color={colors.danger} />
-                        </Pressable>
+                            accessibilityLabel="Delete task"
+                            style={styles.dangerIconBtn}
+                            icon={<Trash2 size={16} color={colors.danger} />}
+                        />
                     </View>
 
                     {demoMessage ? (
@@ -228,97 +218,43 @@ export const TaskUpdating = observer(({ id }: Props) => {
                     <ActionList taskId={id} />
                 </ScrollView>
 
-                <Modal transparent visible={showDeleteDialog} animationType="fade">
-                    <View style={[styles.dialogBackdrop, { backgroundColor: colors.overlay }]}>
-                        <View style={[styles.dialog, { backgroundColor: colors.surface }]}>
-                            <Text style={[styles.dialogTitle, { color: colors.text }]}>
-                                Delete this task?
-                            </Text>
-                            <Text style={{ color: colors.textMuted, fontSize: 14 }}>
-                                This cannot be undone from the app.
-                            </Text>
-                            <View style={styles.dialogActions}>
-                                <Pressable
-                                    style={[
-                                        styles.dialogCancel,
-                                        { backgroundColor: colors.surfaceMuted },
-                                    ]}
-                                    onPress={() => setShowDeleteDialog(false)}
-                                >
-                                    <Text style={{ fontWeight: '600', color: colors.textSecondary }}>
-                                        Cancel
-                                    </Text>
-                                </Pressable>
-                                <Pressable
-                                    style={[styles.dialogDelete, { backgroundColor: colors.danger }]}
-                                    onPress={handleDelete}
-                                >
-                                    <Text style={styles.dialogDeleteText}>Delete</Text>
-                                </Pressable>
-                            </View>
-                        </View>
-                    </View>
-                </Modal>
+                <ConfirmDialog
+                    visible={showDeleteDialog}
+                    title="Delete this task?"
+                    message="This cannot be undone from the app."
+                    showIcon={false}
+                    onCancel={() => setShowDeleteDialog(false)}
+                    onConfirm={handleDelete}
+                />
             </View>
         );
     }
 
-    const inputStyle = {
-        borderColor: colors.border,
-        backgroundColor: colors.inputBg,
-        color: colors.text,
-    };
-
     return (
         <View style={[styles.wrap, { backgroundColor: colors.bg }]}>
             <View style={styles.topBar}>
-                <Pressable
-                    style={[styles.iconBtn, { backgroundColor: colors.surfaceMuted }]}
-                    onPress={store.cancelEditing}
-                >
+                <IconButton onPress={store.cancelEditing} accessibilityLabel="Cancel editing">
                     <ArrowLeft size={20} color={colors.text} />
-                </Pressable>
+                </IconButton>
                 <Text style={[styles.topTitle, { color: colors.text }]}>Edit task</Text>
                 <View style={{ width: 40 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-                <View style={styles.field}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>Title *</Text>
-                    <TextInput
-                        style={[
-                            styles.input,
-                            inputStyle,
-                            store.errors.title && { borderColor: colors.danger },
-                        ]}
-                        value={store.title}
-                        onChangeText={store.setTitle}
-                    />
-                    {store.errors.title ? (
-                        <Text style={{ color: colors.danger, fontSize: 12 }}>{store.errors.title}</Text>
-                    ) : null}
-                </View>
+                <TextField
+                    label="Title *"
+                    value={store.title}
+                    onChangeText={store.setTitle}
+                    error={store.errors.title}
+                />
 
-                <View style={styles.field}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>Description *</Text>
-                    <TextInput
-                        style={[
-                            styles.input,
-                            styles.textarea,
-                            inputStyle,
-                            store.errors.description && { borderColor: colors.danger },
-                        ]}
-                        value={store.description}
-                        onChangeText={store.setDescription}
-                        multiline
-                        textAlignVertical="top"
-                    />
-                    {store.errors.description ? (
-                        <Text style={{ color: colors.danger, fontSize: 12 }}>
-                            {store.errors.description}
-                        </Text>
-                    ) : null}
-                </View>
+                <TextField
+                    label="Description *"
+                    value={store.description}
+                    onChangeText={store.setDescription}
+                    error={store.errors.description}
+                    multiline
+                />
 
                 <DateTimePicker
                     label="Due date & time *"
@@ -327,71 +263,19 @@ export const TaskUpdating = observer(({ id }: Props) => {
                     error={store.errors.dueDate}
                 />
 
-                <View style={styles.field}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>Location *</Text>
-                    <TextInput
-                        style={[
-                            styles.input,
-                            inputStyle,
-                            store.errors.location && { borderColor: colors.danger },
-                        ]}
-                        value={store.location.address}
-                        onChangeText={store.setLocationAddress}
-                        placeholder="Address (geocodes to coordinates)"
-                        placeholderTextColor={colors.textMuted}
-                    />
-                    {store.errors.location ? (
-                        <Text style={{ color: colors.danger, fontSize: 12 }}>
-                            {store.errors.location}
-                        </Text>
-                    ) : null}
-                </View>
-
-                <View style={styles.row}>
-                    <View style={[styles.field, { flex: 1 }]}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Latitude</Text>
-                        <TextInput
-                            style={[styles.input, inputStyle]}
-                            keyboardType="numeric"
-                            placeholder="Auto from address"
-                            placeholderTextColor={colors.textMuted}
-                            value={store.location.latitude?.toString() ?? ''}
-                            onChangeText={v =>
-                                store.setLocationCoordinateFields(
-                                    v,
-                                    store.location.longitude?.toString() ?? '',
-                                )
-                            }
-                        />
-                    </View>
-                    <View style={[styles.field, { flex: 1 }]}>
-                        <Text style={[styles.label, { color: colors.textSecondary }]}>Longitude</Text>
-                        <TextInput
-                            style={[styles.input, inputStyle]}
-                            keyboardType="numeric"
-                            placeholder="Auto from address"
-                            placeholderTextColor={colors.textMuted}
-                            value={store.location.longitude?.toString() ?? ''}
-                            onChangeText={v =>
-                                store.setLocationCoordinateFields(
-                                    store.location.latitude?.toString() ?? '',
-                                    v,
-                                )
-                            }
-                        />
-                    </View>
-                </View>
-
-                {store.isGeocoding || store.geocodeHint ? (
-                    <Text
-                        style={{
-                            fontSize: 12,
-                            color: store.isGeocoding ? colors.info : colors.warning,
-                        }}
-                    >
-                        {store.geocodeHint ?? 'Resolving location…'}
-                    </Text>
-                ) : null}
+                <LocationFields
+                    address={store.location.address}
+                    latitude={store.location.latitude}
+                    longitude={store.location.longitude}
+                    addressError={store.errors.location}
+                    addressLabel="Location *"
+                    addressPlaceholder="Address (geocodes to coordinates)"
+                    coordinatePlaceholder="Auto from address"
+                    onAddressChange={store.setLocationAddress}
+                    onCoordinatesChange={store.setLocationCoordinateFields}
+                    isGeocoding={store.isGeocoding}
+                    geocodeHint={store.geocodeHint}
+                />
 
                 <OptionPicker
                     label="Status"
@@ -401,32 +285,14 @@ export const TaskUpdating = observer(({ id }: Props) => {
                 />
 
                 <View style={styles.field}>
-                    <Text style={[styles.label, { color: colors.textSecondary }]}>Attachments</Text>
+                    <Text style={[styles.label, { color: colors.textMuted }]}>Attachments</Text>
                     <View style={styles.row}>
-                        <Pressable
-                            style={[
-                                styles.secondaryBtn,
-                                {
-                                    backgroundColor: colors.surfaceMuted,
-                                },
-                            ]}
-                            onPress={handlePickImage}
-                        >
-                            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-                                Add image
-                            </Text>
-                        </Pressable>
-                        <Pressable
-                            style={[
-                                styles.secondaryBtn,
-                                { backgroundColor: colors.surfaceMuted },
-                            ]}
-                            onPress={handlePickDocument}
-                        >
-                            <Text style={[styles.secondaryBtnText, { color: colors.text }]}>
-                                Add file
-                            </Text>
-                        </Pressable>
+                        <Button variant="secondary" onPress={handlePickImage}>
+                            Add image
+                        </Button>
+                        <Button variant="secondary" onPress={handlePickDocument}>
+                            Add file
+                        </Button>
                     </View>
                     <AttachmentList
                         attachments={store.existingAttachments}
@@ -441,37 +307,17 @@ export const TaskUpdating = observer(({ id }: Props) => {
                 </View>
 
                 <View style={styles.row}>
-                    <Pressable
-                        style={[
-                            styles.primaryBtn,
-                            { flex: 1, backgroundColor: colors.fab },
-                            saving && { opacity: 0.7 },
-                        ]}
-                        onPress={handleSave}
-                        disabled={saving}
-                    >
-                        {saving ? (
-                            <ActivityIndicator color={colors.onAccent} />
-                        ) : (
-                            <Text style={[styles.primaryBtnText, { color: colors.onAccent }]}>
-                                Save
-                            </Text>
-                        )}
-                    </Pressable>
-                    <Pressable
-                        style={[
-                            styles.secondaryBtn,
-                            {
-                                flex: 1,
-                                backgroundColor: colors.surfaceMuted,
-                            },
-                        ]}
+                    <Button onPress={handleSave} loading={saving} style={{ flex: 1 }}>
+                        Save
+                    </Button>
+                    <Button
+                        variant="secondary"
                         onPress={store.cancelEditing}
+                        style={{ flex: 1 }}
+                        textStyle={{ color: colors.textSecondary }}
                     >
-                        <Text style={[styles.secondaryBtnText, { color: colors.textSecondary }]}>
-                            Cancel
-                        </Text>
-                    </Pressable>
+                        Cancel
+                    </Button>
                 </View>
             </ScrollView>
         </View>
@@ -490,13 +336,6 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     topTitle: { fontSize: 16, fontFamily: Fonts.semibold },
-    iconBtn: {
-        width: 40,
-        height: 40,
-        borderRadius: 12,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
     content: { padding: 20, gap: 14, paddingBottom: 40 },
     titleRow: { flexDirection: 'row', gap: 10, alignItems: 'flex-start' },
     title: {
@@ -530,68 +369,12 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     actions: { flexDirection: 'row', gap: 8, flexWrap: 'wrap' },
-    primaryBtn: {
-        minHeight: 48,
-        paddingHorizontal: 16,
-        borderRadius: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 8,
-    },
-    primaryBtnText: { fontFamily: Fonts.semibold, fontSize: 15 },
-    secondaryBtn: {
-        minHeight: 48,
-        paddingHorizontal: 14,
-        borderRadius: 14,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 6,
-        borderWidth: 0,
-    },
-    secondaryBtnText: { fontFamily: Fonts.medium, fontSize: 14 },
-    dangerBtn: {
+    dangerIconBtn: {
         width: 48,
-        height: 48,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
+        minHeight: 48,
+        paddingHorizontal: 0,
     },
-    field: { gap: 6 },
-    label: { fontSize: 12, fontFamily: Fonts.medium },
-    input: {
-        minHeight: 50,
-        borderWidth: StyleSheet.hairlineWidth,
-        borderRadius: 14,
-        paddingHorizontal: 14,
-        fontSize: 16,
-        fontFamily: Fonts.regular,
-    },
-    textarea: { minHeight: 110, paddingTop: 12, paddingBottom: 12 },
+    field: { gap: 8 },
+    label: { fontSize: 12, fontFamily: Fonts.medium, letterSpacing: 0.2 },
     row: { flexDirection: 'row', gap: 10, flexWrap: 'wrap' },
-    dialogBackdrop: {
-        flex: 1,
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: 24,
-    },
-    dialog: { width: '100%', borderRadius: 20, padding: 20, gap: 10 },
-    dialogTitle: { fontSize: 18, fontFamily: Fonts.semibold },
-    dialogActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-    dialogCancel: {
-        flex: 1,
-        minHeight: 46,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    dialogDelete: {
-        flex: 1,
-        minHeight: 46,
-        borderRadius: 14,
-        alignItems: 'center',
-        justifyContent: 'center',
-    },
-    dialogDeleteText: { fontFamily: Fonts.semibold, color: '#fff' },
 });

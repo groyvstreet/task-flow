@@ -4,18 +4,14 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/shared/lib';
 import { actionStore } from '@/src/entities/action/@x/attachment';
-import { AttachmentService } from '../api/service';
 import { requestAutoSync } from '@/src/shared/api';
 
 export class AttachmentStore {
-    private attachmentService: AttachmentService;
-
     attachments: Attachment[] = [];
     deletedAttachmentIds: string[] = [];
     isLoading = false;
 
-    constructor(attachmentService: AttachmentService) {
-        this.attachmentService = attachmentService;
+    constructor() {
         makeAutoObservable(this);
     }
 
@@ -145,7 +141,7 @@ export class AttachmentStore {
     };
 }
 
-export const attachmentStore = new AttachmentStore(new AttachmentService());
+export const attachmentStore = new AttachmentStore();
 
 const attachmentContext = createContext(attachmentStore);
 

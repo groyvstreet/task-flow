@@ -4,7 +4,6 @@ import { makeAutoObservable, runInAction } from 'mobx';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { STORAGE_KEYS } from '@/src/shared/lib';
 import { randomUUID } from 'expo-crypto';
-import { ActionService } from '../api/service';
 import { requestAutoSync } from '@/src/shared/api';
 
 type LogActionParams = {
@@ -16,14 +15,11 @@ type LogActionParams = {
 };
 
 export class ActionStore {
-    private actionService: ActionService;
-
     actions: Action[] = [];
     historyClearPending = false;
     isLoading = false;
 
-    constructor(actionService: ActionService) {
-        this.actionService = actionService;
+    constructor() {
         makeAutoObservable(this);
     }
 
@@ -132,7 +128,7 @@ export class ActionStore {
     };
 }
 
-export const actionStore = new ActionStore(new ActionService());
+export const actionStore = new ActionStore();
 
 const actionContext = createContext(actionStore);
 
