@@ -1,11 +1,11 @@
 import { themeStore } from '@/src/features/theme-toggle';
-import { initializeApp, setupNotificationHandlers } from '../lib/init';
-import { ToastHost } from '@/src/shared/ui';
 import { ThemeModeContext, getThemeColors } from '@/src/shared/theme';
+import { ToastHost } from '@/src/shared/ui';
 import { DarkTheme, DefaultTheme, ThemeProvider } from 'expo-router';
 import { observer } from 'mobx-react-lite';
 import { useEffect, useState, type ReactNode } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { initializeApp, setupNotificationHandlers } from '../lib/init';
 
 type Props = {
     children: ReactNode;

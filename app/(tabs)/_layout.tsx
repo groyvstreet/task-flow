@@ -1,7 +1,7 @@
-import { Tabs } from 'expo-router';
-import { ClipboardList, History, Map } from 'lucide-react-native';
 import { themeStore } from '@/src/features/theme-toggle';
 import { getThemeColors } from '@/src/shared/theme';
+import { Tabs } from 'expo-router';
+import { ClipboardList, History, Map } from 'lucide-react-native';
 import { observer } from 'mobx-react-lite';
 import { StyleSheet } from 'react-native';
 

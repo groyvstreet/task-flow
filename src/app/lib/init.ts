@@ -1,8 +1,8 @@
-import { taskStore } from '@/src/entities/task';
 import { actionStore } from '@/src/entities/action';
 import { attachmentStore } from '@/src/entities/attachment';
-import { themeStore } from '@/src/features/theme-toggle';
+import { taskStore } from '@/src/entities/task';
 import { syncStore } from '@/src/features/sync';
+import { themeStore } from '@/src/features/theme-toggle';
 import { prepareNotifications } from '@/src/shared/lib';
 import * as Notifications from 'expo-notifications';
 import { router } from 'expo-router';
